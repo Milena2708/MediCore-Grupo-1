@@ -3,60 +3,144 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MediCore — Historial de Consultas</title>
+  <title>MediCore — Inicio</title>
   <link rel="stylesheet" href="shared.css"/>
   <style>
-    .hist-layout { display:grid; grid-template-columns:320px 1fr; gap:1.5rem; align-items:start; }
-    @media(max-width:1100px){ .hist-layout{grid-template-columns:1fr;} }
+    /* ── HOME-SPECIFIC ── */
+    body { background: var(--gray-50); }
 
-    /* Cita atendida item (para seleccionar) */
-    .cita-atendida-item {
-      display:flex; align-items:center; gap:.75rem; padding:.85rem 1rem;
-      border-radius:var(--radius); cursor:pointer; transition:all var(--tr);
-      border-bottom:1px solid var(--gray-100); position:relative;
+    /* Hero Section */
+    .home-hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #1565C0 60%, #1976D2 100%);
+      padding: 3.5rem 2rem 3rem;
+      position: relative; overflow: hidden;
     }
-    .cita-atendida-item:hover { background:var(--blue-pale); }
-    .cita-atendida-item.selected { background:var(--blue-pale); border-left:3px solid var(--blue); margin-left:-3px; }
-    .cai-icon { width:38px;height:38px;border-radius:var(--radius);background:var(--blue-pale);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0; }
-    .cai-main { flex:1;min-width:0; }
-    .cai-nombre { font-size:.83rem;font-weight:600;color:var(--gray-900); white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .cai-meta   { font-size:.68rem;color:var(--gray-400); }
-    .cai-badge  { flex-shrink:0; }
-    .has-hist { background:var(--green-pale) !important; }
+    .home-hero-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; align-items: center; gap: 3rem; flex-wrap: wrap;
+    }
+    .home-hero::before {
+      content:''; position:absolute; top:-80px; right:-80px;
+      width:400px; height:400px; border-radius:50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .home-hero::after {
+      content:''; position:absolute; bottom:-100px; right:200px;
+      width:300px; height:300px; border-radius:50%;
+      background: rgba(255,255,255,0.03);
+    }
+    .hero-content { flex:1; min-width:280px; position:relative;z-index:1; }
+    .hero-eyebrow {
+      display:inline-flex; align-items:center; gap:0.5rem;
+      background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+      border-radius:var(--radius-full); padding:0.35rem 0.85rem;
+      font-size:0.68rem; font-weight:600; color:var(--blue-light);
+      letter-spacing:0.1em; text-transform:uppercase; margin-bottom:1.2rem;
+    }
+    .hero-dot { width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease infinite; }
+    .hero-title {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 800; color: white; line-height: 1.15;
+      margin-bottom: 0.85rem; letter-spacing: -0.02em;
+    }
+    .hero-title span { color: var(--blue-light); }
+    .hero-subtitle { font-size:0.92rem; color:rgba(255,255,255,0.65); margin-bottom:2rem; line-height:1.7; max-width:440px; }
+    .hero-actions { display:flex; gap:0.75rem; flex-wrap:wrap; }
+    .hero-stats {
+      flex-shrink:0; display:flex; flex-direction:column; gap:0.75rem;
+      position:relative;z-index:1;
+    }
+    .hero-stat-card {
+      background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+      border-radius:var(--radius-lg); padding:1rem 1.5rem;
+      backdrop-filter:blur(10px); min-width:190px;
+    }
+    .hs-val { font-size:2rem; font-weight:800; color:white; line-height:1; }
+    .hs-label { font-size:0.68rem; color:rgba(255,255,255,0.6); font-weight:500; text-transform:uppercase; letter-spacing:.05em; margin-top:.25rem; }
 
-    /* Historial list */
-    .hist-card {
+    /* Quick actions */
+    .quick-section {
+      max-width:1280px; margin: 0 auto;
+      padding: 2.5rem 2rem 0;
+    }
+    .quick-label { font-size:0.7rem; font-weight:700; color:var(--gray-400); text-transform:uppercase; letter-spacing:.1em; margin-bottom:1rem; }
+    .quick-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr)); gap:0.85rem; }
+    .quick-card {
       background:white; border:1.5px solid var(--gray-200); border-radius:var(--radius-lg);
-      padding:1.25rem; margin-bottom:.85rem; transition:all var(--tr);
+      padding:1.25rem; cursor:pointer; text-decoration:none;
+      transition:all var(--tr); display:flex; flex-direction:column; align-items:flex-start; gap:0.75rem;
       box-shadow:var(--shadow-sm);
     }
-    .hist-card:hover { box-shadow:var(--shadow); border-color:var(--blue-pale2); }
-    .hist-card-header { display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap; }
-    .hist-code { font-size:.68rem;font-weight:700;color:var(--blue); }
-    .hist-fecha { font-size:.75rem;color:var(--gray-400); }
-    .hist-section { margin-bottom:.9rem; }
-    .hist-section-title { font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gray-400);margin-bottom:.35rem; }
-    .hist-section-body { font-size:.82rem;color:var(--gray-700);line-height:1.65; }
-    .hist-divider { border:none;border-top:1px solid var(--gray-100);margin:.85rem 0; }
-
-    /* Medicamento pill */
-    .med-item { background:var(--blue-pale);border-radius:var(--radius);padding:.5rem .75rem;margin-bottom:.4rem; }
-    .med-nombre { font-size:.82rem;font-weight:700;color:var(--navy); }
-    .med-detalle { font-size:.72rem;color:var(--blue);margin-top:.15rem; }
-
-    /* Próxima cita chip */
-    .prox-cita-chip {
-      display:inline-flex;align-items:center;gap:.4rem;
-      background:var(--green-pale);border-radius:var(--radius-full);
-      padding:.3rem .85rem;font-size:.75rem;font-weight:600;color:#065F46;
+    .quick-card:hover { border-color:var(--blue); box-shadow:0 4px 20px rgba(21,101,192,.12); transform:translateY(-2px); }
+    .qc-icon {
+      width:42px;height:42px; border-radius:var(--radius); display:flex;align-items:center;justify-content:center;
+      font-size:1.3rem; background:var(--blue-pale);
     }
+    .qc-text { font-size:0.82rem; font-weight:600; color:var(--gray-900); line-height:1.3; }
+    .qc-sub  { font-size:0.65rem; color:var(--gray-400); }
 
-    /* Medicamento row en form */
-    .med-row { display:grid;grid-template-columns:2fr 1fr 1.5fr 1.5fr auto;gap:.5rem;align-items:end; }
-    @media(max-width:700px){ .med-row{grid-template-columns:1fr 1fr;} }
+    /* Modules section */
+    .modules-section {
+      max-width:1280px; margin:0 auto; padding:2.5rem 2rem 3rem;
+    }
+    .section-header {
+      display:flex;align-items:flex-end;justify-content:space-between;
+      gap:1rem;flex-wrap:wrap; margin-bottom:1.5rem;
+    }
+    .section-title { font-size:1.5rem;font-weight:800;color:var(--gray-900); }
+
+    .modules-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1.25rem; }
+
+    .module-card {
+      background:white; border:1.5px solid var(--gray-200); border-radius:var(--radius-xl);
+      padding:1.75rem; display:flex;flex-direction:column;gap:1.2rem;
+      box-shadow:var(--shadow-sm); transition:all var(--tr); cursor:default;
+      position:relative; overflow:hidden;
+    }
+    .module-card::before {
+      content:''; position:absolute; top:0;left:0; right:0; height:3px;
+      background:linear-gradient(90deg, var(--blue), var(--blue-light));
+      transform:scaleX(0); transform-origin:left; transition:transform .35s ease;
+    }
+    .module-card:hover { border-color:var(--blue-pale2); box-shadow:var(--shadow); transform:translateY(-3px); }
+    .module-card:hover::before { transform:scaleX(1); }
+
+    .mc-header { display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem; }
+    .mc-num {
+      font-size:0.62rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+      color:white; background:var(--blue); padding:.2rem .6rem; border-radius:var(--radius-full);
+    }
+    .mc-icon {
+      width:48px;height:48px;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;
+      font-size:1.5rem; background:var(--blue-pale); flex-shrink:0;
+    }
+    .mc-title { font-size:1.15rem;font-weight:700;color:var(--gray-900); }
+    .mc-desc { font-size:0.8rem;color:var(--gray-500);line-height:1.7; flex:1; }
+
+    .mc-tags { display:flex;flex-wrap:wrap;gap:.4rem; }
+    .mc-tag {
+      font-size:0.65rem;font-weight:600;color:var(--blue);
+      background:var(--blue-pale);border-radius:var(--radius-full);padding:.18rem .6rem;
+    }
+    .mc-footer { display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding-top:.75rem;border-top:1px solid var(--gray-100); }
+    .mc-status { font-size:0.65rem;color:var(--gray-400);display:flex;align-items:center;gap:.35rem; }
+    .mc-status-dot { width:6px;height:6px;border-radius:50%;background:var(--green); }
+
+    /* Banner */
+    .banner-section { max-width:1280px;margin:0 auto;padding:0 2rem 3rem; }
+    .banner {
+      background:linear-gradient(135deg,#E3F2FD 0%,#BBDEFB 100%);
+      border:1.5px solid var(--blue-pale2); border-radius:var(--radius-xl);
+      padding:2rem 2.5rem; display:flex;align-items:center;justify-content:space-between;gap:2rem;flex-wrap:wrap;
+    }
+    .banner-left h3 { font-size:1.25rem;font-weight:800;color:var(--navy);margin-bottom:.4rem; }
+    .banner-left p  { font-size:.82rem;color:var(--blue);max-width:420px; }
+    .banner-img { font-size:3.5rem; opacity:.7; }
   </style>
 </head>
 <body>
+
+<!-- HEADER -->
 <header class="app-header">
   <div class="app-header-inner">
     <a href="index.html" class="logo-link">
@@ -67,11 +151,11 @@
       </div>
     </a>
     <nav class="app-nav">
-      <a href="index.html"       class="nav-item"><span class="nav-num">00</span><span class="nav-label">Inicio</span></a>
+      <a href="index.html"       class="nav-item active"><span class="nav-num">00</span><span class="nav-label">Inicio</span></a>
       <a href="pacientes.html"   class="nav-item"><span class="nav-num">01</span><span class="nav-label">Pacientes</span></a>
       <a href="citas.html"       class="nav-item"><span class="nav-num">02</span><span class="nav-label">Citas</span></a>
       <a href="sala-espera.html" class="nav-item"><span class="nav-num">03</span><span class="nav-label">Sala de Espera</span></a>
-      <a href="historial.html"   class="nav-item active"><span class="nav-num">04</span><span class="nav-label">Historial</span></a>
+      <a href="historial.html"   class="nav-item"><span class="nav-num">04</span><span class="nav-label">Historial</span></a>
       <a href="reportes.html"    class="nav-item"><span class="nav-num">05</span><span class="nav-label">Reportes</span></a>
     </nav>
     <div class="nav-right">
@@ -81,145 +165,184 @@
   </div>
 </header>
 
-<main class="page-wrap">
-  <div class="page-hero">
-    <div class="page-hero-text">
-      <div class="page-hero-label">Módulo 04</div>
-      <div class="page-hero-title">Historial de Consultas</div>
-      <div class="page-hero-sub">Expediente clínico por paciente. Solo citas atendidas generan historial médico.</div>
+<!-- HERO -->
+<section class="home-hero">
+  <div class="home-hero-inner">
+    <div class="hero-content">
+      <div class="hero-eyebrow"><span class="hero-dot"></span>Sistema de Gestión Clínica</div>
+      <h1 class="hero-title">Te cuidamos,<br><span>te curamos.</span></h1>
+      <p class="hero-subtitle">Plataforma integral para la gestión de pacientes, citas médicas y atención clínica. Hola, ¿qué necesitas hacer hoy?</p>
+      <div class="hero-actions">
+        <a href="pacientes.html" class="btn btn-white btn-lg">➕ Nuevo Paciente</a>
+        <a href="citas.html" class="btn btn-lg" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.3);">📅 Agendar Cita</a>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat-card">
+        <div class="hs-val" id="hs-pac">0</div>
+        <div class="hs-label">Pacientes Registrados</div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="hs-val" id="hs-citas">0</div>
+        <div class="hs-label">Citas Programadas Hoy</div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="hs-val" id="hs-espera">0</div>
+        <div class="hs-label">Pacientes en Espera</div>
+      </div>
     </div>
   </div>
+</section>
 
-  <div class="stats-row" style="margin-bottom:1.5rem">
-    <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-val" id="st-hist">0</div><div class="stat-label">Consultas Registradas</div></div></div>
-    <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-val" id="st-pendientes">0</div><div class="stat-label">Atendidas sin historial</div></div></div>
-    <div class="stat-card"><div class="stat-icon orange">💊</div><div><div class="stat-val" id="st-con-meds">0</div><div class="stat-label">Con Medicamentos</div></div></div>
-    <div class="stat-card"><div class="stat-icon teal">👥</div><div><div class="stat-val" id="st-pacs-hist">0</div><div class="stat-label">Pacientes con Historial</div></div></div>
+<!-- QUICK ACTIONS -->
+<div class="quick-section">
+  <div class="quick-label">Acceso Rápido</div>
+  <div class="quick-grid">
+    <a href="citas.html" class="quick-card">
+      <div class="qc-icon">📅</div>
+      <div><div class="qc-text">Agendar una cita</div><div class="qc-sub">Nueva cita médica</div></div>
+    </a>
+    <a href="pacientes.html" class="quick-card">
+      <div class="qc-icon">👤</div>
+      <div><div class="qc-text">Registrar paciente</div><div class="qc-sub">Alta nuevo paciente</div></div>
+    </a>
+    <a href="sala-espera.html" class="quick-card">
+      <div class="qc-icon">🏥</div>
+      <div><div class="qc-text">Sala de espera</div><div class="qc-sub">Ver pacientes en turno</div></div>
+    </a>
+    <a href="historial.html" class="quick-card">
+      <div class="qc-icon">📋</div>
+      <div><div class="qc-text">Ver historial</div><div class="qc-sub">Expediente clínico</div></div>
+    </a>
+    <a href="reportes.html" class="quick-card">
+      <div class="qc-icon">📊</div>
+      <div><div class="qc-text">Reportes</div><div class="qc-sub">Estadísticas y datos</div></div>
+    </a>
+    <a href="citas.html?filter=hoy" class="quick-card">
+      <div class="qc-icon">🔍</div>
+      <div><div class="qc-text">Citas de hoy</div><div class="qc-sub">Ver agenda del día</div></div>
+    </a>
   </div>
+</div>
 
-  <div class="hist-layout">
+<!-- MODULES -->
+<div class="modules-section">
+  <div class="section-header">
+    <div>
+      <div class="section-label">Sistema Modular</div>
+      <div class="section-title">Módulos del Sistema</div>
+    </div>
+  </div>
+  <div class="modules-grid">
 
-    <!-- Sidebar: lista de citas atendidas -->
-    <div class="card" style="position:sticky;top:80px;max-height:calc(100vh - 120px);overflow-y:auto;">
-      <div class="card-title">Citas Atendidas</div>
-      <div class="search-input-wrap" style="margin-bottom:1rem">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="form-control" id="search-citas-at" placeholder="Buscar paciente, código…" oninput="renderCitasAtendidas()"/>
+    <div class="module-card">
+      <div class="mc-header">
+        <span class="mc-num">Módulo 01</span>
+        <div class="mc-icon">👥</div>
       </div>
-      <div id="lista-citas-atendidas"></div>
+      <div class="mc-title">Registro de Pacientes</div>
+      <div class="mc-desc">Alta y gestión completa del perfil de cada paciente. Datos personales, documento de identidad, alergias y contacto de emergencia.</div>
+      <div class="mc-tags">
+        <span class="mc-tag">Nuevo paciente</span>
+        <span class="mc-tag">Buscar</span>
+        <span class="mc-tag">Editar</span>
+        <span class="mc-tag">Alergias</span>
+      </div>
+      <div class="mc-footer">
+        <div class="mc-status"><div class="mc-status-dot"></div>Activo</div>
+        <a href="pacientes.html" class="btn btn-primary btn-sm">Ir al módulo →</a>
+      </div>
     </div>
 
-    <!-- Main: historial del paciente / form -->
-    <div id="main-historial">
-      <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <div class="empty-title">Selecciona una cita atendida</div>
-        <div class="empty-sub">Elige una cita del panel izquierdo para ver o registrar el historial clínico.</div>
+    <div class="module-card">
+      <div class="mc-header">
+        <span class="mc-num">Módulo 02</span>
+        <div class="mc-icon">📅</div>
+      </div>
+      <div class="mc-title">Programación de Citas</div>
+      <div class="mc-desc">Calendario de citas médicas por especialidad y médico. Control de horarios, prioridades de atención y detección de conflictos.</div>
+      <div class="mc-tags">
+        <span class="mc-tag">Nueva cita</span>
+        <span class="mc-tag">Especialidades</span>
+        <span class="mc-tag">Prioridad</span>
+        <span class="mc-tag">Estados</span>
+      </div>
+      <div class="mc-footer">
+        <div class="mc-status"><div class="mc-status-dot"></div>Activo</div>
+        <a href="citas.html" class="btn btn-primary btn-sm">Ir al módulo →</a>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <div class="mc-header">
+        <span class="mc-num">Módulo 03</span>
+        <div class="mc-icon">🏥</div>
+      </div>
+      <div class="mc-title">Sala de Espera Virtual</div>
+      <div class="mc-desc">Monitoreo en tiempo real del flujo de pacientes. Orden por prioridad, hora de llegada y gestión de estados de atención.</div>
+      <div class="mc-tags">
+        <span class="mc-tag">En espera</span>
+        <span class="mc-tag">En atención</span>
+        <span class="mc-tag">Turnos</span>
+        <span class="mc-tag">Prioridad</span>
+      </div>
+      <div class="mc-footer">
+        <div class="mc-status"><div class="mc-status-dot"></div>Activo</div>
+        <a href="sala-espera.html" class="btn btn-primary btn-sm">Ir al módulo →</a>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <div class="mc-header">
+        <span class="mc-num">Módulo 04</span>
+        <div class="mc-icon">📋</div>
+      </div>
+      <div class="mc-title">Historial de Consultas</div>
+      <div class="mc-desc">Expediente clínico completo: síntomas, diagnósticos, tratamientos y medicamentos recetados por cada consulta atendida.</div>
+      <div class="mc-tags">
+        <span class="mc-tag">Diagnóstico</span>
+        <span class="mc-tag">Tratamiento</span>
+        <span class="mc-tag">Recetas</span>
+        <span class="mc-tag">Seguimiento</span>
+      </div>
+      <div class="mc-footer">
+        <div class="mc-status"><div class="mc-status-dot"></div>Activo</div>
+        <a href="historial.html" class="btn btn-primary btn-sm">Ir al módulo →</a>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <div class="mc-header">
+        <span class="mc-num">Módulo 05</span>
+        <div class="mc-icon">📊</div>
+      </div>
+      <div class="mc-title">Reportes</div>
+      <div class="mc-desc">Estadísticas de atención, productividad médica y tendencias clínicas. Visualización de datos por período, especialidad y estado.</div>
+      <div class="mc-tags">
+        <span class="mc-tag">Estadísticas</span>
+        <span class="mc-tag">Gráficos</span>
+        <span class="mc-tag">Exportar</span>
+        <span class="mc-tag">Tendencias</span>
+      </div>
+      <div class="mc-footer">
+        <div class="mc-status"><div class="mc-status-dot"></div>Activo</div>
+        <a href="reportes.html" class="btn btn-primary btn-sm">Ir al módulo →</a>
       </div>
     </div>
 
   </div>
-</main>
+</div>
 
-<!-- ══════ MODAL FORM HISTORIAL ══════ -->
-<div class="modal-overlay" id="modal-historial">
-  <div class="modal-box lg">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-hist-title">Registrar Consulta Médica</div>
-        <div class="modal-subtitle" id="modal-hist-sub"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal('modal-historial')">✕</button>
+<!-- BANNER -->
+<div class="banner-section">
+  <div class="banner">
+    <div class="banner-left">
+      <h3>🏥 Atención organizada, pacientes satisfechos</h3>
+      <p>Gestiona el flujo completo de tu clínica: desde el registro del paciente hasta el historial de consultas, todo integrado en un solo sistema.</p>
     </div>
-
-    <form id="form-historial" novalidate>
-      <input type="hidden" id="hist-cita-codigo"/>
-
-      <!-- Info del paciente -->
-      <div id="hist-pac-strip" style="margin-bottom:1.25rem"></div>
-
-      <div class="section-label" style="margin-bottom:.75rem">Datos de la Consulta</div>
-      <div class="form-grid" style="margin-bottom:1.25rem">
-        <div class="form-group">
-          <label class="form-label">Código de Historial <span class="opt">(auto)</span></label>
-          <input type="text" class="form-control" id="hist-codigo" readonly/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Médico Tratante</label>
-          <input type="text" class="form-control" id="hist-medico" readonly/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Especialidad</label>
-          <input type="text" class="form-control" id="hist-especialidad" readonly/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fecha de Atención</label>
-          <input type="text" class="form-control" id="hist-fecha" readonly/>
-        </div>
-      </div>
-
-      <div class="section-label" style="margin-bottom:.75rem">Registro Clínico</div>
-      <div class="form-grid" style="margin-bottom:1.25rem">
-
-        <div class="form-group full">
-          <label class="form-label">Síntomas Reportados <span class="req">*</span></label>
-          <textarea class="form-control" id="hist-sintomas" maxlength="300" rows="3"
-            placeholder="Describa los síntomas indicados por el paciente (mínimo 10 caracteres)…"></textarea>
-          <div class="form-hint" id="hist-sintomas-cnt">0 / 300</div>
-          <div class="form-error" id="hist-sintomas-err"></div>
-        </div>
-
-        <div class="form-group full">
-          <label class="form-label">Diagnóstico <span class="req">*</span></label>
-          <textarea class="form-control" id="hist-diagnostico" maxlength="300" rows="3"
-            placeholder="Resultado médico de la consulta (mínimo 10 caracteres)…"></textarea>
-          <div class="form-hint" id="hist-diagnostico-cnt">0 / 300</div>
-          <div class="form-error" id="hist-diagnostico-err"></div>
-        </div>
-
-        <div class="form-group full">
-          <label class="form-label">Tratamiento / Indicaciones <span class="req">*</span></label>
-          <textarea class="form-control" id="hist-tratamiento" maxlength="400" rows="3"
-            placeholder="Indicaciones para el paciente: reposo, hidratación, medicamentos… (mínimo 10 caracteres)"></textarea>
-          <div class="form-hint" id="hist-tratamiento-cnt">0 / 400</div>
-          <div class="form-error" id="hist-tratamiento-err"></div>
-        </div>
-
-      </div>
-
-      <!-- Medicamentos -->
-      <div class="section-label" style="margin-bottom:.75rem">Medicamentos Recetados <span class="opt" style="font-size:.7rem;text-transform:none;letter-spacing:0;font-weight:400;color:var(--gray-400)">(opcional)</span></div>
-      <div id="med-lista" style="margin-bottom:.75rem"></div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="agregarMed()" style="margin-bottom:1.25rem">➕ Agregar Medicamento</button>
-
-      <!-- Observaciones y próxima cita -->
-      <div class="form-grid">
-        <div class="form-group full">
-          <label class="form-label">
-            Observaciones Adicionales <span class="opt">(opcional)</span>
-          </label>
-          <textarea class="form-control" id="hist-observaciones" maxlength="300" rows="3"
-            placeholder="Comentarios adicionales del médico…"
-            oninput="actualizarContadorObs()"></textarea>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.3rem;">
-            <span class="form-hint">Máximo 300 caracteres</span>
-            <span id="obs-contador" style="font-size:.65rem;font-weight:600;color:var(--gray-400);">0 / 300</span>
-          </div>
-          <div class="form-error" id="hist-observaciones-err"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Próxima Cita Recomendada <span class="opt">(opcional)</span></label>
-          <input type="date" class="form-control" id="hist-prox-cita"/>
-          <div class="form-hint">Debe ser una fecha futura</div>
-          <div class="form-error" id="hist-prox-cita-err"></div>
-        </div>
-      </div>
-
-    </form>
-
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-historial')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarHistorial()">💾 Guardar Historial</button>
+    <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center;">
+      <a href="pacientes.html" class="btn btn-primary">Registrar Paciente</a>
+      <a href="citas.html"     class="btn btn-outline">Ver Citas</a>
     </div>
   </div>
 </div>
@@ -227,362 +350,17 @@
 <div id="toast-container"></div>
 <script src="shared.js"></script>
 <script>
-let medicamentos = [];
-let citaSeleccionada = null;
+document.addEventListener('DOMContentLoaded', () => {
+  const pacs   = DB.get('pacientes');
+  const citas  = DB.get('citas');
+  const today  = new Date().toISOString().split('T')[0];
+  const citasHoy = citas.filter(c => c.fecha === today && !['Cancelada','No asistió'].includes(c.estado));
+  const espera   = citas.filter(c => c.estado === 'En espera');
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Check URL param
-  const params = new URLSearchParams(window.location.search);
-  const citaParam = params.get('cita');
-
-  renderCitasAtendidas();
-  updateStats();
-
-  if(citaParam){
-    setTimeout(()=> seleccionarCita(citaParam), 100);
-  }
-
-  // Contadores de texto
-  ['hist-sintomas','hist-diagnostico','hist-tratamiento'].forEach(id=>{
-    const el  = document.getElementById(id);
-    const cnt = document.getElementById(id+'-cnt');
-    if(el&&cnt){
-      el.addEventListener('input',()=>{ cnt.textContent=`${el.value.length} / ${el.maxLength}`; });
-    }
-  });
-
-  // Min date para próxima cita
-  const pc = document.getElementById('hist-prox-cita');
-  if(pc){ const t=new Date(); t.setDate(t.getDate()+1); pc.min=t.toISOString().split('T')[0]; }
+  animateCount(document.getElementById('hs-pac'),   pacs.length);
+  animateCount(document.getElementById('hs-citas'), citasHoy.length);
+  animateCount(document.getElementById('hs-espera'),espera.length);
 });
-
-// ─── Contador observaciones ────────────────────────────────
-function actualizarContadorObs() {
-  const el  = document.getElementById('hist-observaciones');
-  const cnt = document.getElementById('obs-contador');
-  if (!el || !cnt) return;
-  const len = el.value.length;
-  cnt.textContent = `${len} / 300`;
-  // Color según proximidad al límite
-  if (len >= 280)       cnt.style.color = 'var(--red)';
-  else if (len >= 240)  cnt.style.color = 'var(--orange)';
-  else                  cnt.style.color = 'var(--gray-400)';
-}
-
-function renderCitasAtendidas(){
-  const q     = (document.getElementById('search-citas-at').value||'').toLowerCase();
-  const citas = DB.get('citas').filter(c=>c.estado==='Atendida');
-  const hist  = DB.get('historial');
-
-  const filtradas = citas.filter(c=>{
-    const pac = getPaciente(c.paciente);
-    const nombre = pac ? `${pac.nombres} ${pac.apellidos}`.toLowerCase() : '';
-    return !q || nombre.includes(q) || c.codigo.toLowerCase().includes(q);
-  }).sort((a,b)=> b.creadaEn?.localeCompare(a.creadaEn||'')||0);
-
-  const el = document.getElementById('lista-citas-atendidas');
-  if(!filtradas.length){
-    el.innerHTML=`<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-sub">No hay citas atendidas${q?' con ese criterio':''}</div></div>`;
-    return;
-  }
-  el.innerHTML = filtradas.map(c=>{
-    const pac = getPaciente(c.paciente);
-    const nombre = pac ? `${pac.nombres} ${pac.apellidos}` : '(Paciente no encontrado)';
-    const tieneHist = hist.some(h=>h.citaCodigo===c.codigo);
-    const selClass  = citaSeleccionada?.codigo===c.codigo ? 'selected' : '';
-    const hasClass  = tieneHist ? 'has-hist' : '';
-    return `<div class="cita-atendida-item ${selClass} ${hasClass}" onclick="seleccionarCita('${c.codigo}')">
-      <div class="cai-icon">${tieneHist?'✅':'📋'}</div>
-      <div class="cai-main">
-        <div class="cai-nombre">${nombre}</div>
-        <div class="cai-meta">${c.codigo} · ${formatDate(c.fecha)} · ${c.especialidad}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function seleccionarCita(codigo){
-  const c = DB.get('citas').find(x=>x.codigo===codigo);
-  if(!c){ showToast('Cita no encontrada','error'); return; }
-  if(c.estado!=='Atendida'){ showToast('Solo se puede registrar historial de citas atendidas','error'); return; }
-  citaSeleccionada = c;
-  renderCitasAtendidas();
-
-  const pac = getPaciente(c.paciente);
-  const hist = DB.get('historial').filter(h=>h.pacienteCodigo===c.paciente).sort((a,b)=>b.fecha?.localeCompare(a.fecha||'')||0);
-  const tieneEsta = hist.find(h=>h.citaCodigo===c.codigo);
-  const alNoNing  = pac?.alergias?.length && pac.alergias[0]!=='Ninguna';
-
-  let html = '';
-
-  // Info strip
-  html += `<div class="patient-info-strip" style="margin-bottom:1.25rem">
-    <div class="pi-avatar">${pac?pac.nombres[0]+pac.apellidos[0]:'?'}</div>
-    <div class="pi-data">
-      <div class="pi-name">${pac?`${pac.nombres} ${pac.apellidos}`:'Paciente no encontrado'}</div>
-      <div class="pi-meta">${pac?`${pac.edad} años · ${pac.tipoDoc}: ${pac.documento}`:''} · Cita: ${c.codigo} · ${formatDate(c.fecha)}</div>
-    </div>
-    ${alNoNing?`<div class="allergy-alert">⚠️ ${pac.alergias.join(', ')}</div>`:''}
-  </div>`;
-
-  // Botón registrar / ya registrado
-  if(!tieneEsta){
-    html += `<div class="card" style="margin-bottom:1.25rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-        <div>
-          <div class="card-title" style="margin:0">Registrar Historial Clínico</div>
-          <div style="font-size:.78rem;color:var(--gray-400);margin-top:.25rem">Cita del ${formatDate(c.fecha)} · ${c.especialidad} · ${c.medico}</div>
-        </div>
-        <button class="btn btn-primary" onclick="abrirFormHistorial('${c.codigo}')">📋 Registrar Consulta</button>
-      </div>
-    </div>`;
-  } else {
-    html += `<div class="alert alert-success" style="margin-bottom:1.25rem"><span class="alert-icon">✅</span>Historial registrado para esta cita.</div>`;
-  }
-
-  // Lista de historiales del paciente
-  if(hist.length){
-    html += `<div style="margin-bottom:.75rem;font-size:.78rem;font-weight:600;color:var(--gray-700)">Historial completo del paciente (${hist.length} consulta${hist.length!==1?'s':''})</div>`;
-    html += hist.map(h=>{
-      const esEsta = h.citaCodigo===c.codigo;
-      return `<div class="hist-card" ${esEsta?'style="border-color:var(--blue);border-width:2px"':''}>
-        <div class="hist-card-header">
-          <div>
-            <span class="hist-code">${h.codigo}</span>
-            ${esEsta?'<span style="background:var(--blue-pale);color:var(--blue);font-size:.6rem;font-weight:700;padding:.15rem .5rem;border-radius:var(--radius-full);margin-left:.4rem">Esta consulta</span>':''}
-          </div>
-          <span class="hist-fecha">📅 ${formatDate(h.fecha)} · ${h.especialidad}</span>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;font-size:.78rem;">
-          <span>👨‍⚕️ ${h.medico}</span>
-        </div>
-
-        <div class="hist-section">
-          <div class="hist-section-title">Síntomas</div>
-          <div class="hist-section-body">${h.sintomas}</div>
-        </div>
-        <hr class="hist-divider"/>
-        <div class="hist-section">
-          <div class="hist-section-title">Diagnóstico</div>
-          <div class="hist-section-body">${h.diagnostico}</div>
-        </div>
-        <hr class="hist-divider"/>
-        <div class="hist-section">
-          <div class="hist-section-title">Tratamiento / Indicaciones</div>
-          <div class="hist-section-body">${h.tratamiento}</div>
-        </div>
-
-        ${h.medicamentos&&h.medicamentos.length ? `
-        <hr class="hist-divider"/>
-        <div class="hist-section">
-          <div class="hist-section-title">Medicamentos Recetados</div>
-          ${h.medicamentos.map(m=>`<div class="med-item">
-            <div class="med-nombre">💊 ${m.nombre}</div>
-            <div class="med-detalle">${[m.dosis,m.frecuencia,m.duracion].filter(Boolean).join(' · ')}</div>
-          </div>`).join('')}
-        </div>` : ''}
-
-        ${h.observaciones ? `
-        <hr class="hist-divider"/>
-        <div class="hist-section">
-          <div class="hist-section-title">Observaciones</div>
-          <div class="hist-section-body">${h.observaciones}</div>
-        </div>` : ''}
-
-        ${h.proximaCita ? `
-        <hr class="hist-divider"/>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <div class="hist-section-title" style="margin:0">Próxima Cita:</div>
-          <div class="prox-cita-chip">📅 ${formatDate(h.proximaCita)}</div>
-        </div>` : ''}
-
-        ${alNoNing ? `<hr class="hist-divider"/><div class="allergy-alert" style="margin-top:.25rem">⚠️ Alergias del paciente: ${pac.alergias.join(', ')}</div>` : ''}
-      </div>`;
-    }).join('');
-  } else {
-    html += `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Sin historial previo</div><div class="empty-sub">Este paciente aún no tiene consultas registradas.</div></div>`;
-  }
-
-  document.getElementById('main-historial').innerHTML = html;
-  updateStats();
-}
-
-function abrirFormHistorial(citaCodigo){
-  const c = DB.get('citas').find(x=>x.codigo===citaCodigo);
-  if(!c){ showToast('Cita no encontrada','error'); return; }
-
-  // Verificar duplicado
-  const dup = DB.get('historial').find(h=>h.citaCodigo===citaCodigo);
-  if(dup){ showToast('Ya existe un historial para esta cita','warn'); return; }
-
-  const pac = getPaciente(c.paciente);
-  const alNoNing = pac?.alergias?.length && pac.alergias[0]!=='Ninguna';
-
-  document.getElementById('hist-cita-codigo').value     = c.codigo;
-  document.getElementById('hist-codigo').value          = nextId('HIST', DB.get('historial'));
-  document.getElementById('hist-medico').value          = c.medico;
-  document.getElementById('hist-especialidad').value    = c.especialidad;
-  document.getElementById('hist-fecha').value           = formatDate(c.fecha);
-  document.getElementById('modal-hist-title').textContent = 'Registrar Consulta Médica';
-  document.getElementById('modal-hist-sub').textContent  = `Cita ${c.codigo} · ${pac?`${pac.nombres} ${pac.apellidos}`:'Paciente'}`;
-
-  // Strip
-  document.getElementById('hist-pac-strip').innerHTML = `
-    <div class="patient-info-strip">
-      <div class="pi-avatar">${pac?pac.nombres[0]+pac.apellidos[0]:'?'}</div>
-      <div class="pi-data">
-        <div class="pi-name">${pac?`${pac.nombres} ${pac.apellidos}`:'—'}</div>
-        <div class="pi-meta">${pac?`${pac.edad} años · ${pac.tipoDoc}: ${pac.documento}`:''}</div>
-      </div>
-      ${alNoNing?`<div class="allergy-alert">⚠️ ${pac.alergias.join(', ')}</div>`:''}
-    </div>`;
-
-  // Reset form
-  ['hist-sintomas','hist-diagnostico','hist-tratamiento','hist-observaciones'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  ['hist-sintomas-cnt','hist-diagnostico-cnt','hist-tratamiento-cnt'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent='0 / '+(id.includes('tratamiento')?400:300);
-  });
-  // Reset contador observaciones
-  const obsContador = document.getElementById('obs-contador');
-  if (obsContador) { obsContador.textContent = '0 / 300'; obsContador.style.color = 'var(--gray-400)'; }
-  document.getElementById('hist-prox-cita').value='';
-  medicamentos=[];
-  renderMeds();
-  clearAllErrors('form-historial');
-  openModal('modal-historial');
-}
-
-// ─── Medicamentos dinámicos ─────────────────────────────────
-function agregarMed(){
-  medicamentos.push({nombre:'',dosis:'',frecuencia:'',duracion:''});
-  renderMeds();
-}
-
-function eliminarMed(i){
-  medicamentos.splice(i,1);
-  renderMeds();
-}
-
-function renderMeds(){
-  const el=document.getElementById('med-lista');
-  if(!medicamentos.length){
-    el.innerHTML='<div style="font-size:.75rem;color:var(--gray-400);margin-bottom:.5rem">Sin medicamentos agregados.</div>';
-    return;
-  }
-  el.innerHTML = medicamentos.map((m,i)=>`
-    <div class="med-row" style="margin-bottom:.65rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:.65rem">
-      <div class="form-group">
-        <label class="form-label">Medicamento <span class="req">*</span></label>
-        <input type="text" class="form-control" placeholder="Ej: Amoxicilina" value="${m.nombre}"
-          oninput="medicamentos[${i}].nombre=this.value"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Dosis</label>
-        <input type="text" class="form-control" placeholder="500mg" value="${m.dosis}"
-          oninput="medicamentos[${i}].dosis=this.value"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Frecuencia</label>
-        <input type="text" class="form-control" placeholder="Cada 8 horas" value="${m.frecuencia}"
-          oninput="medicamentos[${i}].frecuencia=this.value"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Duración</label>
-        <input type="text" class="form-control" placeholder="5 días" value="${m.duracion}"
-          oninput="medicamentos[${i}].duracion=this.value"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">&nbsp;</label>
-        <button type="button" class="btn btn-danger btn-sm" onclick="eliminarMed(${i})">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
-// ─── Validar y guardar historial ────────────────────────────
-function validarHistorial(){
-  clearAllErrors('form-historial');
-  let ok=true;
-  const sintomas    = document.getElementById('hist-sintomas').value.trim();
-  const diagnostico = document.getElementById('hist-diagnostico').value.trim();
-  const tratamiento = document.getElementById('hist-tratamiento').value.trim();
-  const proxCita    = document.getElementById('hist-prox-cita').value;
-
-  if(!sintomas||sintomas.length<10)     { showFieldError('hist-sintomas','Mínimo 10 caracteres'); ok=false; }
-  else if(sintomas.length>300)           { showFieldError('hist-sintomas','Máximo 300 caracteres'); ok=false; }
-
-  if(!diagnostico||diagnostico.length<10){ showFieldError('hist-diagnostico','Mínimo 10 caracteres'); ok=false; }
-  else if(diagnostico.length>300)        { showFieldError('hist-diagnostico','Máximo 300 caracteres'); ok=false; }
-  else if(['bien','mal','ok','nada'].includes(diagnostico.toLowerCase())) { showFieldError('hist-diagnostico','El diagnóstico es demasiado corto o vago'); ok=false; }
-
-  if(!tratamiento||tratamiento.length<10){ showFieldError('hist-tratamiento','Mínimo 10 caracteres'); ok=false; }
-  else if(tratamiento.length>400)        { showFieldError('hist-tratamiento','Máximo 400 caracteres'); ok=false; }
-
-  // Medicamentos: si hay alguno, el nombre es obligatorio
-  for(let i=0;i<medicamentos.length;i++){
-    if(!medicamentos[i].nombre.trim()){
-      showToast(`Medicamento ${i+1}: el nombre es obligatorio`,'error');
-      ok=false; break;
-    }
-  }
-
-  // Próxima cita: debe ser futura si se completa
-  if(proxCita && new Date(proxCita) <= new Date()){
-    showFieldError('hist-prox-cita','La próxima cita debe ser una fecha futura'); ok=false;
-  }
-
-  return ok;
-}
-
-function guardarHistorial(){
-  if(!validarHistorial()){ showToast('Corrija los errores del formulario','error'); return; }
-  const citaCodigo = document.getElementById('hist-cita-codigo').value;
-  const cita = DB.get('citas').find(c=>c.codigo===citaCodigo);
-  if(!cita){ showToast('Cita no encontrada','error'); return; }
-
-  // Verificar duplicado
-  if(DB.get('historial').find(h=>h.citaCodigo===citaCodigo)){
-    showToast('Ya existe un historial para esta cita','warn'); return;
-  }
-
-  const hist = {
-    codigo:        nextId('HIST', DB.get('historial')),
-    citaCodigo,
-    pacienteCodigo: cita.paciente,
-    medico:         cita.medico,
-    especialidad:   cita.especialidad,
-    fecha:          cita.fecha,
-    sintomas:       document.getElementById('hist-sintomas').value.trim(),
-    diagnostico:    document.getElementById('hist-diagnostico').value.trim(),
-    tratamiento:    document.getElementById('hist-tratamiento').value.trim(),
-    medicamentos:   medicamentos.filter(m=>m.nombre.trim()),
-    observaciones:  document.getElementById('hist-observaciones').value.trim(),
-    proximaCita:    document.getElementById('hist-prox-cita').value,
-    registradoEn:   new Date().toISOString(),
-  };
-
-  const historiales = DB.get('historial');
-  historiales.push(hist);
-  DB.set('historial', historiales);
-
-  closeModal('modal-historial');
-  showToast('Historial clínico registrado exitosamente','success');
-  renderCitasAtendidas();
-  if(citaSeleccionada) seleccionarCita(citaSeleccionada.codigo);
-  updateStats();
-}
-
-function updateStats(){
-  const hist  = DB.get('historial');
-  const citas = DB.get('citas').filter(c=>c.estado==='Atendida');
-  const pacs  = [...new Set(hist.map(h=>h.pacienteCodigo))];
-  document.getElementById('st-hist').textContent      = hist.length;
-  document.getElementById('st-pendientes').textContent= citas.filter(c=>!hist.find(h=>h.citaCodigo===c.codigo)).length;
-  document.getElementById('st-con-meds').textContent  = hist.filter(h=>h.medicamentos&&h.medicamentos.length).length;
-  document.getElementById('st-pacs-hist').textContent = pacs.length;
-}
 </script>
 </body>
 </html>
