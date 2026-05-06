@@ -126,6 +126,75 @@
     .mc-status { font-size:0.65rem;color:var(--gray-400);display:flex;align-items:center;gap:.35rem; }
     .mc-status-dot { width:6px;height:6px;border-radius:50%;background:var(--green); }
 
+    /* ── Especialidades ── */
+    .especialidades-section {
+      max-width: 1280px; margin: 0 auto; padding: 0 2rem 3rem;
+    }
+    .esp-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem;
+    }
+    .esp-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+    .esp-card {
+      background: white;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--tr);
+      display: flex; flex-direction: column;
+    }
+    .esp-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-4px);
+      border-color: var(--blue-pale2);
+    }
+    .esp-img-wrap {
+      position: relative; overflow: hidden;
+      height: 160px; flex-shrink: 0;
+    }
+    .esp-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.45s ease;
+      display: block;
+    }
+    .esp-card:hover .esp-img { transform: scale(1.06); }
+    .esp-img-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(13,34,64,0.3) 100%);
+    }
+    .esp-body {
+      padding: 1rem 1.1rem 1.25rem;
+      display: flex; flex-direction: column; gap: .4rem; flex: 1;
+    }
+    .esp-icon {
+      font-size: 1.4rem; line-height: 1;
+    }
+    .esp-title {
+      font-size: .95rem; font-weight: 700;
+      color: var(--gray-900); line-height: 1.2;
+    }
+    .esp-desc {
+      font-size: .74rem; color: var(--gray-500);
+      line-height: 1.65; flex: 1;
+    }
+    @media(max-width: 1100px){
+      .esp-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media(max-width: 768px){
+      .especialidades-section { padding: 0 1rem 2.5rem; }
+      .esp-grid { grid-template-columns: repeat(2, 1fr); gap: .85rem; }
+      .esp-img-wrap { height: 130px; }
+    }
+    @media(max-width: 480px){
+      .esp-grid { grid-template-columns: 1fr; }
+    }
+
     /* Banner */
     .banner-section { max-width:1280px;margin:0 auto;padding:0 2rem 3rem; }
     .banner {
@@ -193,7 +262,6 @@
     </div>
   </div>
 </section>
-
 
 <!-- QUICK ACTIONS -->
 <div class="quick-section">
@@ -329,6 +397,7 @@
 
   </div>
 </div>
+
 <!-- ESPECIALIDADES -->
 <div class="especialidades-section">
   <div class="esp-header">
@@ -337,9 +406,9 @@
       <div class="section-title">Nuestras Especialidades</div>
     </div>
   </div>
- 
+
   <div class="esp-grid">
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80&fit=crop" alt="Medicina General" class="esp-img"/>
@@ -351,7 +420,7 @@
         <p class="esp-desc">Atención primaria integral para adultos y niños. Diagnóstico, tratamiento y seguimiento de enfermedades comunes y crónicas.</p>
       </div>
     </div>
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=600&q=80&fit=crop" alt="Pediatría" class="esp-img"/>
@@ -363,7 +432,7 @@
         <p class="esp-desc">Cuidado especializado de la salud infantil desde el nacimiento hasta la adolescencia. Control de crecimiento y desarrollo.</p>
       </div>
     </div>
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?w=600&q=80&fit=crop" alt="Cardiología" class="esp-img"/>
@@ -375,7 +444,7 @@
         <p class="esp-desc">Prevención, diagnóstico y tratamiento de enfermedades del corazón y del sistema cardiovascular con tecnología avanzada.</p>
       </div>
     </div>
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&q=80&fit=crop" alt="Dermatología" class="esp-img"/>
@@ -387,7 +456,7 @@
         <p class="esp-desc">Diagnóstico y tratamiento de enfermedades de la piel, cabello y uñas. Dermatología clínica y estética.</p>
       </div>
     </div>
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80&fit=crop" alt="Traumatología" class="esp-img"/>
@@ -399,7 +468,7 @@
         <p class="esp-desc">Prevención y tratamiento de lesiones óseas, articulares y trastornos del sistema musculoesquelético.</p>
       </div>
     </div>
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=600&q=80&fit=crop" alt="Ginecología" class="esp-img"/>
@@ -411,7 +480,7 @@
         <p class="esp-desc">Atención integral de la salud femenina. Control prenatal, ginecología clínica y seguimiento reproductivo.</p>
       </div>
     </div>
- 
+
     <div class="esp-card">
       <div class="esp-img-wrap">
         <img src="https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=600&q=80&fit=crop" alt="Odontología" class="esp-img"/>
@@ -423,9 +492,10 @@
         <p class="esp-desc">Salud bucal completa: limpieza, ortodoncia, restauraciones y tratamientos estéticos dentales para toda la familia.</p>
       </div>
     </div>
- 
+
   </div>
 </div>
+
 <!-- BANNER -->
 <div class="banner-section">
   <div class="banner">
