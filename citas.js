@@ -1,79 +1,7 @@
-﻿// ─── Supabase ─────────────────────────────────────────────
-const SUPABASE_URL    = 'https://bhawfcvnthzdwmkgwgxj.supabase.co';
-const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYXdmY3ZudGh6ZHdta2d3Z3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzY4MjUsImV4cCI6MjA5NjAxMjgyNX0.gpaCKHr2HqAg7k0Zb4VolKWNEZvBrgE7Y2bJuL27PYc'; // ← reemplaza con tu clave real
-
-/**
- * Obtiene todos los pacientes desde Supabase.
- * Devuelve un array normalizado con los mismos campos que usaba DB local.
- */
-async function fetchPacientesSupabase() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/pacientes?select=*`,
-    {
-      headers: {
-        'apikey':        SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'Content-Type':  'application/json',
-      },
-    }
-  );
-  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`);
-  const rows = await res.json();
-
-  // Normaliza los nombres de columna de Supabase (con mayúsculas y espacios)
-  // a los nombres que usa el resto del código
-  return rows.map(p => ({
-    id:        p.id,
-    codigo:    p.id,                                          // alias para compatibilidad
-    nombres:   p['Nombres']   ?? p['nombres']   ?? '',
-    apellidos: p['Apellidos'] ?? p['apellidos'] ?? '',
-    documento: String(p['N° documento'] ?? p['N%C2%B0 documento'] ?? p['documento'] ?? ''),
-    telefono:  String(p['Teléfono']     ?? p['Telefono']     ?? p['telefono']  ?? '—'),
-    edad:      calcularEdad(p['Fecha de nacimiento'] ?? p['fecha_nacimiento'] ?? null),
-    tipoDoc:   'DNI',
-    alergias:  [],
-  }));
-}
-
-/** Calcula la edad a partir de una fecha ISO (YYYY-MM-DD) */
-function calcularEdad(fechaNac) {
-  if (!fechaNac) return '—';
-  const hoy   = new Date();
-  const nac   = new Date(fechaNac);
-  let edad    = hoy.getFullYear() - nac.getFullYear();
-  const mes   = hoy.getMonth() - nac.getMonth();
-  if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
-  return edad;
-}
-
-/**
- * Cache en memoria para no llamar a la API en cada render.
- * Se puebla la primera vez que se abre el modal o se carga la página.
- */
-let _pacientesCache = null;   // null = sin cargar; [] = vacío pero ya se intentó
-
-async function getPacientesCache() {
-  if (_pacientesCache !== null) return _pacientesCache;
-  try {
-    _pacientesCache = await fetchPacientesSupabase();
-  } catch (e) {
-    console.error('No se pudo cargar pacientes desde Supabase:', e);
-    showToast('Error al cargar pacientes desde el servidor', 'error');
-    _pacientesCache = [];
-  }
-  return _pacientesCache;
-}
-
-/**
- * Busca un paciente por su código/id dentro del cache.
- * Reemplaza la función getPaciente() de shared.js para pacientes remotos.
- */
-function getPacienteLocal(codigo) {
-  if (!_pacientesCache) return null;
-  return _pacientesCache.find(
-    p => String(p.codigo ?? p.id) === String(codigo)
-  ) || null;
-}
+﻿// ─── Supabase config (pacientes) ──────────────────────────
+// _pacientesCache, getPacientesCache() y getPacienteLocal()
+// ahora viven en shared.js para ser compartidos con historial y sala-espera.
+// Este archivo solo necesita las constantes para su propio uso si las requiere.
 
 const MEDICOS = {
   'Medicina general': ['Dr. Carlos Ramos', 'Dra. Ana Torres', 'Dr. José Peña'],
@@ -99,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     o.value = o.textContent = h;
     sel.appendChild(o);
   });
-  // Precarga pacientes desde Supabase al arrancar
+  // Precarga pacientes desde Supabase (función en shared.js)
   await getPacientesCache();
   renderCitas();
   updateStats();
@@ -128,7 +56,7 @@ async function cargarPacientesSelect(selected = '') {
   }
 
   pacientes.forEach(p => {
-    const codigo  = p.codigo ?? p.id;
+    const codigo    = p.codigo ?? p.id;
     const nombres   = p.nombres   ?? p.nombre   ?? '';
     const apellidos = p.apellidos ?? p.apellido  ?? '';
     const documento = p.documento ?? p.dni       ?? p.cedula ?? '';
@@ -160,7 +88,6 @@ function onPacienteChange() {
   const bloque = document.getElementById('bloque-pac-info');
   if (!codigo) { bloque.style.display = 'none'; return; }
 
-  // Usa el cache local (ya poblado desde Supabase)
   const p = getPacienteLocal(codigo);
   if (!p) { bloque.style.display = 'none'; return; }
 
@@ -240,17 +167,17 @@ function guardarCita() {
   if (!validarFormCita()) { showToast('Corrija los errores', 'error'); return; }
   const editCodigo = document.getElementById('cita-codigo-edit').value;
   const cita = {
-    codigo:       editCodigo || nextId('CITA', DB.get('citas')),
-    paciente:     document.getElementById('cita-paciente').value,
-    especialidad: document.getElementById('cita-especialidad').value,
-    medico:       document.getElementById('cita-medico').value,
-    fecha:        document.getElementById('cita-fecha').value,
-    hora:         document.getElementById('cita-hora').value,
-    prioridad:    document.getElementById('cita-prioridad').value,
-    motivo:       document.getElementById('cita-motivo').value.trim(),
-    justificacion:document.getElementById('cita-justificacion').value.trim(),
-    estado:       editCodigo ? DB.get('citas').find(c => c.codigo === editCodigo)?.estado || 'Programada' : 'Programada',
-    creadaEn:     new Date().toISOString(),
+    codigo:        editCodigo || nextId('CITA', DB.get('citas')),
+    paciente:      document.getElementById('cita-paciente').value,
+    especialidad:  document.getElementById('cita-especialidad').value,
+    medico:        document.getElementById('cita-medico').value,
+    fecha:         document.getElementById('cita-fecha').value,
+    hora:          document.getElementById('cita-hora').value,
+    prioridad:     document.getElementById('cita-prioridad').value,
+    motivo:        document.getElementById('cita-motivo').value.trim(),
+    justificacion: document.getElementById('cita-justificacion').value.trim(),
+    estado:        editCodigo ? DB.get('citas').find(c => c.codigo === editCodigo)?.estado || 'Programada' : 'Programada',
+    creadaEn:      new Date().toISOString(),
   };
   const citas = DB.get('citas');
   if (editCodigo) {
@@ -279,10 +206,10 @@ function renderCitas() {
     const pac    = getPacienteLocal(c.paciente);
     const nombre = pac ? `${pac.nombres ?? pac.nombre ?? ''} ${pac.apellidos ?? pac.apellido ?? ''}`.toLowerCase() : '';
     if (q && !nombre.includes(q) && !c.medico.toLowerCase().includes(q) && !c.codigo.toLowerCase().includes(q)) return false;
-    if (fF  && c.fecha        !== fF)  return false;
-    if (fE  && c.estado       !== fE)  return false;
+    if (fF  && c.fecha         !== fF)  return false;
+    if (fE  && c.estado        !== fE)  return false;
     if (fEsp && c.especialidad !== fEsp) return false;
-    if (fP  && c.prioridad    !== fP)  return false;
+    if (fP  && c.prioridad     !== fP)  return false;
     return true;
   });
 
@@ -313,7 +240,7 @@ function renderCitas() {
       <div class="cita-main">
         <div class="cita-header">
           <span class="cita-code">${c.codigo}</span>
-          <span class="badge badge-${c.estado.toLowerCase().replace(/ /g, '')} badge-${c.estado === 'En espera' ? 'espera' : c.estado === 'En atención' ? 'atencion' : c.estado === 'No asistió' ? 'noasistio' : c.estado.toLowerCase()}">${c.estado}</span>
+          <span class="badge badge-${c.estado.toLowerCase().replace(/ /g,'')} badge-${c.estado==='En espera'?'espera':c.estado==='En atención'?'atencion':c.estado==='No asistió'?'noasistio':c.estado.toLowerCase()}">${c.estado}</span>
           <span class="badge badge-${c.prioridad.toLowerCase()}">${c.prioridad}</span>
         </div>
         <div class="cita-paciente">${nombre}</div>
@@ -382,9 +309,9 @@ async function editarCita(codigo) {
     document.getElementById('cita-medico').value = c.medico;
     document.getElementById('cita-hora').value   = c.hora;
   }, 50);
-  document.getElementById('cita-fecha').value     = c.fecha;
-  document.getElementById('cita-prioridad').value = c.prioridad;
-  document.getElementById('cita-motivo').value    = c.motivo;
+  document.getElementById('cita-fecha').value         = c.fecha;
+  document.getElementById('cita-prioridad').value     = c.prioridad;
+  document.getElementById('cita-motivo').value        = c.motivo;
   document.getElementById('cita-justificacion').value = c.justificacion || '';
   if (c.prioridad === 'Urgente') document.getElementById('bloque-justificacion').style.display = 'block';
   openModal('modal-cita');

@@ -1,4 +1,7 @@
-// ─── Supabase ─────────────────────────────────────────────
+// ─── Supabase config ───────────────────────────────────────
+// NOTA: _pacientesCache, getPacientesCache() y getPacienteLocal()
+// están definidos en shared.js y disponibles aquí.
+
 const SUPABASE_URL  = 'https://bhawfcvnthzdwmkgwgxj.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYXdmY3ZudGh6ZHdta2d3Z3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzY4MjUsImV4cCI6MjA5NjAxMjgyNX0.gpaCKHr2HqAg7k0Zb4VolKWNEZvBrgE7Y2bJuL27PYc';
 
@@ -22,19 +25,19 @@ async function fetchHistorialSupabase() {
 function normalizeHistorial(h) {
   return {
     id:             h.id,
-    codigo:         h.codigo         ?? '',
-    citaCodigo:     h.cita_codigo    ?? '',
+    codigo:         h.codigo          ?? '',
+    citaCodigo:     h.cita_codigo     ?? '',
     pacienteCodigo: h.paciente_codigo ?? '',
-    medico:         h.medico         ?? '',
-    especialidad:   h.especialidad   ?? '',
-    fecha:          h.fecha          ?? '',
-    sintomas:       h.sintomas       ?? '',
-    diagnostico:    h.diagnostico    ?? '',
-    tratamiento:    h.tratamiento    ?? '',
+    medico:         h.medico          ?? '',
+    especialidad:   h.especialidad    ?? '',
+    fecha:          h.fecha           ?? '',
+    sintomas:       h.sintomas        ?? '',
+    diagnostico:    h.diagnostico     ?? '',
+    tratamiento:    h.tratamiento     ?? '',
     medicamentos:   Array.isArray(h.medicamentos) ? h.medicamentos : [],
-    observaciones:  h.observaciones  ?? '',
-    proximaCita:    h.proxima_cita   ?? '',
-    registradoEn:   h.registrado_en  ?? h.created_at ?? '',
+    observaciones:  h.observaciones   ?? '',
+    proximaCita:    h.proxima_cita    ?? '',
+    registradoEn:   h.registrado_en   ?? h.created_at ?? '',
   };
 }
 
@@ -76,7 +79,7 @@ async function insertHistorialSupabase(hist) {
   return normalizeHistorial(Array.isArray(data) ? data[0] : data);
 }
 
-// ─── Helpers para generar código correlativo ───────────────
+// ─── Código correlativo ────────────────────────────────────
 function nextHistCodigo(lista) {
   const nums = lista
     .map(h => parseInt((h.codigo ?? '').replace('HIST-', ''), 10))
@@ -94,12 +97,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params    = new URLSearchParams(window.location.search);
   const citaParam = params.get('cita');
 
-  await getHistorialCache();   // precarga historial desde Supabase
+  // Precarga pacientes (shared.js) e historial en paralelo
+  await Promise.all([getPacientesCache(), getHistorialCache()]);
+
   await renderCitasAtendidas();
   await updateStats();
 
   if (citaParam) {
-    setTimeout(() => seleccionarCita(citaParam), 100);
+    setTimeout(() => seleccionarCita(citaParam), 150);
   }
 
   ['hist-sintomas', 'hist-diagnostico', 'hist-tratamiento'].forEach(id => {
@@ -125,7 +130,7 @@ async function renderCitasAtendidas() {
   const hist  = await getHistorialCache();
 
   const filtradas = citas.filter(c => {
-    const pac    = getPacienteLocal(c.paciente) ?? getPaciente?.(c.paciente);
+    const pac    = getPacienteLocal(c.paciente);
     const nombre = pac ? `${pac.nombres ?? ''} ${pac.apellidos ?? ''}`.toLowerCase() : '';
     return !q || nombre.includes(q) || c.codigo.toLowerCase().includes(q);
   }).sort((a, b) => b.creadaEn?.localeCompare(a.creadaEn || '') || 0);
@@ -136,8 +141,8 @@ async function renderCitasAtendidas() {
     return;
   }
   el.innerHTML = filtradas.map(c => {
-    const pac       = getPacienteLocal(c.paciente) ?? getPaciente?.(c.paciente);
-    const nombre    = pac ? `${pac.nombres ?? ''} ${pac.apellidos ?? ''}` : '(Paciente no encontrado)';
+    const pac       = getPacienteLocal(c.paciente);
+    const nombre    = pac ? `${pac.nombres ?? ''} ${pac.apellidos ?? ''}`.trim() : '(Paciente no encontrado)';
     const tieneHist = hist.some(h => h.citaCodigo === c.codigo);
     const selClass  = citaSeleccionada?.codigo === c.codigo ? 'selected' : '';
     const hasClass  = tieneHist ? 'has-hist' : '';
@@ -159,15 +164,17 @@ async function seleccionarCita(codigo) {
   citaSeleccionada = c;
   await renderCitasAtendidas();
 
-  const pac       = getPacienteLocal(c.paciente) ?? getPaciente?.(c.paciente);
-  const histAll   = await getHistorialCache();
-  const hist      = histAll.filter(h => h.pacienteCodigo === c.paciente)
-                           .sort((a, b) => b.fecha?.localeCompare(a.fecha || '') || 0);
+  const pac      = getPacienteLocal(c.paciente);
+  const histAll  = await getHistorialCache();
+  const hist     = histAll
+    .filter(h => h.pacienteCodigo === String(c.paciente))
+    .sort((a, b) => b.fecha?.localeCompare(a.fecha || '') || 0);
   const tieneEsta = hist.find(h => h.citaCodigo === c.codigo);
   const alNoNing  = pac?.alergias?.length && pac.alergias[0] !== 'Ninguna';
 
   let html = '';
 
+  // Strip paciente
   html += `<div class="patient-info-strip" style="margin-bottom:1.25rem">
     <div class="pi-avatar">${pac ? (pac.nombres[0] ?? '?') + (pac.apellidos[0] ?? '?') : '?'}</div>
     <div class="pi-data">
@@ -177,6 +184,7 @@ async function seleccionarCita(codigo) {
     ${alNoNing ? `<div class="allergy-alert">⚠️ ${pac.alergias.join(', ')}</div>` : ''}
   </div>`;
 
+  // Botón registrar o aviso ya registrado
   if (!tieneEsta) {
     html += `<div class="card" style="margin-bottom:1.25rem">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
@@ -191,6 +199,7 @@ async function seleccionarCita(codigo) {
     html += `<div class="alert alert-success" style="margin-bottom:1.25rem"><span class="alert-icon">✅</span>Historial registrado para esta cita.</div>`;
   }
 
+  // Lista de historiales del paciente
   if (hist.length) {
     html += `<div style="margin-bottom:.75rem;font-size:.78rem;font-weight:600;color:var(--gray-700)">Historial completo del paciente (${hist.length} consulta${hist.length !== 1 ? 's' : ''})</div>`;
     html += hist.map(h => {
@@ -261,14 +270,14 @@ async function abrirFormHistorial(citaCodigo) {
   const dup  = hist.find(h => h.citaCodigo === citaCodigo);
   if (dup) { showToast('Ya existe un historial para esta cita', 'warn'); return; }
 
-  const pac      = getPacienteLocal(c.paciente) ?? getPaciente?.(c.paciente);
+  const pac      = getPacienteLocal(c.paciente);
   const alNoNing = pac?.alergias?.length && pac.alergias[0] !== 'Ninguna';
 
-  document.getElementById('hist-cita-codigo').value      = c.codigo;
-  document.getElementById('hist-codigo').value           = nextHistCodigo(hist);
-  document.getElementById('hist-medico').value           = c.medico;
-  document.getElementById('hist-especialidad').value     = c.especialidad;
-  document.getElementById('hist-fecha').value            = formatDate(c.fecha);
+  document.getElementById('hist-cita-codigo').value       = c.codigo;
+  document.getElementById('hist-codigo').value            = nextHistCodigo(hist);
+  document.getElementById('hist-medico').value            = c.medico;
+  document.getElementById('hist-especialidad').value      = c.especialidad;
+  document.getElementById('hist-fecha').value             = formatDate(c.fecha);
   document.getElementById('modal-hist-title').textContent = 'Registrar Consulta Médica';
   document.getElementById('modal-hist-sub').textContent   = `Cita ${c.codigo} · ${pac ? `${pac.nombres} ${pac.apellidos}` : 'Paciente'}`;
 
@@ -351,15 +360,13 @@ function validarHistorial() {
   const tratamiento = document.getElementById('hist-tratamiento').value.trim();
   const proxCita    = document.getElementById('hist-prox-cita').value;
 
-  if (!sintomas || sintomas.length < 10)      { showFieldError('hist-sintomas', 'Mínimo 10 caracteres'); ok = false; }
-  else if (sintomas.length > 300)              { showFieldError('hist-sintomas', 'Máximo 300 caracteres'); ok = false; }
-
-  if (!diagnostico || diagnostico.length < 10) { showFieldError('hist-diagnostico', 'Mínimo 10 caracteres'); ok = false; }
-  else if (diagnostico.length > 300)           { showFieldError('hist-diagnostico', 'Máximo 300 caracteres'); ok = false; }
-  else if (['bien', 'mal', 'ok', 'nada'].includes(diagnostico.toLowerCase())) { showFieldError('hist-diagnostico', 'El diagnóstico es demasiado corto o vago'); ok = false; }
-
-  if (!tratamiento || tratamiento.length < 10) { showFieldError('hist-tratamiento', 'Mínimo 10 caracteres'); ok = false; }
-  else if (tratamiento.length > 400)           { showFieldError('hist-tratamiento', 'Máximo 400 caracteres'); ok = false; }
+  if (!sintomas || sintomas.length < 10)       { showFieldError('hist-sintomas',    'Mínimo 10 caracteres'); ok = false; }
+  else if (sintomas.length > 300)               { showFieldError('hist-sintomas',    'Máximo 300 caracteres'); ok = false; }
+  if (!diagnostico || diagnostico.length < 10)  { showFieldError('hist-diagnostico', 'Mínimo 10 caracteres'); ok = false; }
+  else if (diagnostico.length > 300)            { showFieldError('hist-diagnostico', 'Máximo 300 caracteres'); ok = false; }
+  else if (['bien','mal','ok','nada'].includes(diagnostico.toLowerCase())) { showFieldError('hist-diagnostico', 'El diagnóstico es demasiado corto o vago'); ok = false; }
+  if (!tratamiento || tratamiento.length < 10)  { showFieldError('hist-tratamiento', 'Mínimo 10 caracteres'); ok = false; }
+  else if (tratamiento.length > 400)            { showFieldError('hist-tratamiento', 'Máximo 400 caracteres'); ok = false; }
 
   for (let i = 0; i < medicamentos.length; i++) {
     if (!medicamentos[i].nombre.trim()) {
@@ -367,15 +374,13 @@ function validarHistorial() {
       ok = false; break;
     }
   }
-
   if (proxCita && new Date(proxCita) <= new Date()) {
     showFieldError('hist-prox-cita', 'La próxima cita debe ser una fecha futura'); ok = false;
   }
-
   return ok;
 }
 
-// ─── Guardar historial → Supabase ──────────────────────────
+// ─── Guardar → Supabase ────────────────────────────────────
 async function guardarHistorial() {
   if (!validarHistorial()) { showToast('Corrija los errores del formulario', 'error'); return; }
 
@@ -391,7 +396,7 @@ async function guardarHistorial() {
   const hist = {
     codigo:         nextHistCodigo(histCache),
     citaCodigo,
-    pacienteCodigo: cita.paciente,
+    pacienteCodigo: String(cita.paciente),
     medico:         cita.medico,
     especialidad:   cita.especialidad,
     fecha:          cita.fecha,
@@ -406,7 +411,7 @@ async function guardarHistorial() {
 
   try {
     const saved = await insertHistorialSupabase(hist);
-    _historialCache = [...histCache, saved];   // actualiza cache local
+    _historialCache = [...histCache, saved];
     closeModal('modal-historial');
     showToast('Historial clínico registrado exitosamente', 'success');
     await renderCitasAtendidas();
