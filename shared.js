@@ -200,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startClock();
   setActiveNav();
 });
+
 // ── Supabase pacientes cache (compartido por citas, historial, sala) ──
 const SUPABASE_URL_SH  = 'https://bhawfcvnthzdwmkgwgxj.supabase.co';
 const SUPABASE_ANON_SH = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYXdmY3ZudGh6ZHdta2d3Z3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzY4MjUsImV4cCI6MjA5NjAxMjgyNX0.gpaCKHr2HqAg7k0Zb4VolKWNEZvBrgE7Y2bJuL27PYc';
