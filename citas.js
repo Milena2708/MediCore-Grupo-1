@@ -1,3 +1,80 @@
+﻿// ─── Supabase ─────────────────────────────────────────────
+const SUPABASE_URL    = 'https://bhawfcvnthzdwmkgwgxj.supabase.co';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYXdmY3ZudGh6ZHdta2d3Z3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzY4MjUsImV4cCI6MjA5NjAxMjgyNX0.gpaCKHr2HqAg7k0Zb4VolKWNEZvBrgE7Y2bJuL27PYc'; // ← reemplaza con tu clave real
+
+/**
+ * Obtiene todos los pacientes desde Supabase.
+ * Devuelve un array normalizado con los mismos campos que usaba DB local.
+ */
+async function fetchPacientesSupabase() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/pacientes?select=*`,
+    {
+      headers: {
+        'apikey':        SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Content-Type':  'application/json',
+      },
+    }
+  );
+  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`);
+  const rows = await res.json();
+
+  // Normaliza los nombres de columna de Supabase (con mayúsculas y espacios)
+  // a los nombres que usa el resto del código
+  return rows.map(p => ({
+    id:        p.id,
+    codigo:    p.id,                                          // alias para compatibilidad
+    nombres:   p['Nombres']   ?? p['nombres']   ?? '',
+    apellidos: p['Apellidos'] ?? p['apellidos'] ?? '',
+    documento: String(p['N° documento'] ?? p['N%C2%B0 documento'] ?? p['documento'] ?? ''),
+    telefono:  String(p['Teléfono']     ?? p['Telefono']     ?? p['telefono']  ?? '—'),
+    edad:      calcularEdad(p['Fecha de nacimiento'] ?? p['fecha_nacimiento'] ?? null),
+    tipoDoc:   'DNI',
+    alergias:  [],
+  }));
+}
+
+/** Calcula la edad a partir de una fecha ISO (YYYY-MM-DD) */
+function calcularEdad(fechaNac) {
+  if (!fechaNac) return '—';
+  const hoy   = new Date();
+  const nac   = new Date(fechaNac);
+  let edad    = hoy.getFullYear() - nac.getFullYear();
+  const mes   = hoy.getMonth() - nac.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
+/**
+ * Cache en memoria para no llamar a la API en cada render.
+ * Se puebla la primera vez que se abre el modal o se carga la página.
+ */
+let _pacientesCache = null;   // null = sin cargar; [] = vacío pero ya se intentó
+
+async function getPacientesCache() {
+  if (_pacientesCache !== null) return _pacientesCache;
+  try {
+    _pacientesCache = await fetchPacientesSupabase();
+  } catch (e) {
+    console.error('No se pudo cargar pacientes desde Supabase:', e);
+    showToast('Error al cargar pacientes desde el servidor', 'error');
+    _pacientesCache = [];
+  }
+  return _pacientesCache;
+}
+
+/**
+ * Busca un paciente por su código/id dentro del cache.
+ * Reemplaza la función getPaciente() de shared.js para pacientes remotos.
+ */
+function getPacienteLocal(codigo) {
+  if (!_pacientesCache) return null;
+  return _pacientesCache.find(
+    p => String(p.codigo ?? p.id) === String(codigo)
+  ) || null;
+}
+
 const MEDICOS = {
   'Medicina general': ['Dr. Carlos Ramos', 'Dra. Ana Torres', 'Dr. José Peña'],
   'Pediatría':        ['Dra. Lucía Herrera', 'Dr. Marco Díaz'],
@@ -14,7 +91,7 @@ const HORAS = Array.from({ length: 20 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${m}`;
 }).filter(h => { const [hh] = h.split(':'); return parseInt(hh) < 18; });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('cita-fecha').min = todayStr();
   const sel = document.getElementById('cita-hora');
   HORAS.forEach(h => {
@@ -22,25 +99,43 @@ document.addEventListener('DOMContentLoaded', () => {
     o.value = o.textContent = h;
     sel.appendChild(o);
   });
+  // Precarga pacientes desde Supabase al arrancar
+  await getPacientesCache();
   renderCitas();
   updateStats();
 });
 
-function abrirNuevaCita() {
+async function abrirNuevaCita() {
   resetFormCita();
   document.getElementById('modal-cita-title').textContent = 'Nueva Cita';
-  cargarPacientesSelect();
+  await cargarPacientesSelect();
   openModal('modal-cita');
 }
 
-function cargarPacientesSelect(selected = '') {
+async function cargarPacientesSelect(selected = '') {
   const sel = document.getElementById('cita-paciente');
+  sel.innerHTML = '<option value="">Cargando pacientes…</option>';
+  sel.disabled  = true;
+
+  const pacientes = await getPacientesCache();
+
   sel.innerHTML = '<option value="">Seleccionar paciente…</option>';
-  DB.get('pacientes').forEach(p => {
+  sel.disabled  = false;
+
+  if (!pacientes.length) {
+    sel.innerHTML = '<option value="">No hay pacientes registrados</option>';
+    return;
+  }
+
+  pacientes.forEach(p => {
+    const codigo  = p.codigo ?? p.id;
+    const nombres   = p.nombres   ?? p.nombre   ?? '';
+    const apellidos = p.apellidos ?? p.apellido  ?? '';
+    const documento = p.documento ?? p.dni       ?? p.cedula ?? '';
     const o = document.createElement('option');
-    o.value = p.codigo;
-    o.textContent = `${p.nombres} ${p.apellidos} — ${p.documento}`;
-    if (p.codigo === selected) o.selected = true;
+    o.value       = codigo;
+    o.textContent = `${nombres} ${apellidos} — ${documento}`;
+    if (String(codigo) === String(selected)) o.selected = true;
     sel.appendChild(o);
   });
 }
@@ -64,17 +159,28 @@ function onPacienteChange() {
   const strip  = document.getElementById('pac-info-strip');
   const bloque = document.getElementById('bloque-pac-info');
   if (!codigo) { bloque.style.display = 'none'; return; }
-  const p = getPaciente(codigo);
+
+  // Usa el cache local (ya poblado desde Supabase)
+  const p = getPacienteLocal(codigo);
   if (!p) { bloque.style.display = 'none'; return; }
-  const alNoNing = p.alergias && p.alergias.length && p.alergias[0] !== 'Ninguna';
+
+  const nombres   = p.nombres   ?? p.nombre   ?? '';
+  const apellidos = p.apellidos ?? p.apellido  ?? '';
+  const edad      = p.edad      ?? '—';
+  const telefono  = p.telefono  ?? p.celular   ?? '—';
+  const tipoDoc   = p.tipoDoc   ?? p.tipo_doc  ?? 'Doc';
+  const documento = p.documento ?? p.dni       ?? p.cedula ?? '—';
+  const alergias  = Array.isArray(p.alergias) ? p.alergias : [];
+  const alNoNing  = alergias.length && alergias[0] !== 'Ninguna';
+
   strip.innerHTML = `
     <div class="patient-info-strip">
-      <div class="pi-avatar">${p.nombres[0]}${p.apellidos[0]}</div>
+      <div class="pi-avatar">${(nombres[0] ?? '?')}${(apellidos[0] ?? '?')}</div>
       <div class="pi-data">
-        <div class="pi-name">${p.nombres} ${p.apellidos}</div>
-        <div class="pi-meta">${p.edad} años · ${p.telefono} · ${p.tipoDoc}: ${p.documento}</div>
+        <div class="pi-name">${nombres} ${apellidos}</div>
+        <div class="pi-meta">${edad} años · ${telefono} · ${tipoDoc}: ${documento}</div>
       </div>
-      ${alNoNing ? `<div class="allergy-alert">⚠️ ${p.alergias.join(', ')}</div>` : ''}
+      ${alNoNing ? `<div class="allergy-alert">⚠️ ${alergias.join(', ')}</div>` : ''}
     </div>`;
   bloque.style.display = 'block';
   clearFieldError('cita-paciente');
@@ -170,8 +276,8 @@ function renderCitas() {
   const fP   = document.getElementById('f-prioridad').value;
 
   let citas = DB.get('citas').filter(c => {
-    const pac    = getPaciente(c.paciente);
-    const nombre = pac ? `${pac.nombres} ${pac.apellidos}`.toLowerCase() : '';
+    const pac    = getPacienteLocal(c.paciente);
+    const nombre = pac ? `${pac.nombres ?? pac.nombre ?? ''} ${pac.apellidos ?? pac.apellido ?? ''}`.toLowerCase() : '';
     if (q && !nombre.includes(q) && !c.medico.toLowerCase().includes(q) && !c.codigo.toLowerCase().includes(q)) return false;
     if (fF  && c.fecha        !== fF)  return false;
     if (fE  && c.estado       !== fE)  return false;
@@ -189,9 +295,12 @@ function renderCitas() {
   empty.style.display = 'none';
 
   grid.innerHTML = citas.map(c => {
-    const pac      = getPaciente(c.paciente);
-    const nombre   = pac ? `${pac.nombres} ${pac.apellidos}` : '(Paciente no encontrado)';
-    const alNoNing = pac?.alergias?.length && pac.alergias[0] !== 'Ninguna';
+    const pac      = getPacienteLocal(c.paciente);
+    const nombre   = pac
+      ? `${pac.nombres ?? pac.nombre ?? ''} ${pac.apellidos ?? pac.apellido ?? ''}`.trim()
+      : '(Paciente no encontrado)';
+    const alergias = Array.isArray(pac?.alergias) ? pac.alergias : [];
+    const alNoNing = alergias.length && alergias[0] !== 'Ninguna';
     const priClass = c.prioridad === 'Urgente' ? 'urgente' : c.prioridad === 'Preferencial' ? 'preferencial' : '';
 
     let acciones = '';
@@ -215,7 +324,7 @@ function renderCitas() {
           <span>🕐 ${c.hora}</span>
         </div>
         <div class="cita-motivo">💬 ${c.motivo}</div>
-        ${alNoNing ? `<div class="cita-allergy">⚠️ Alergias: ${pac.alergias.join(', ')}</div>` : ''}
+        ${alNoNing ? `<div class="cita-allergy">⚠️ Alergias: ${alergias.join(', ')}</div>` : ''}
         ${c.prioridad === 'Urgente' && c.justificacion ? `<div style="font-size:.7rem;color:var(--red);margin-top:.35rem">🚨 ${c.justificacion}</div>` : ''}
       </div>
       <div class="cita-actions">${acciones}</div>
@@ -257,11 +366,11 @@ function confirmarCancelacion() {
   updateStats();
 }
 
-function editarCita(codigo) {
+async function editarCita(codigo) {
   const c = DB.get('citas').find(x => x.codigo === codigo);
   if (!c) return;
   resetFormCita();
-  cargarPacientesSelect(c.paciente);
+  await cargarPacientesSelect(c.paciente);
   document.getElementById('modal-cita-title').textContent     = 'Editar Cita';
   document.getElementById('cita-codigo-edit').value           = c.codigo;
   document.getElementById('cita-codigo').value                = c.codigo;
