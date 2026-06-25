@@ -1,3 +1,8 @@
+﻿// ─── Supabase config (pacientes) ──────────────────────────
+// _pacientesCache, getPacientesCache() y getPacienteLocal()
+// ahora viven en shared.js para ser compartidos con historial y sala-espera.
+// Este archivo solo necesita las constantes para su propio uso si las requiere.
+
 const MEDICOS = {
   'Medicina general': ['Dr. Carlos Ramos', 'Dra. Ana Torres', 'Dr. José Peña'],
   'Pediatría':        ['Dra. Lucía Herrera', 'Dr. Marco Díaz'],
@@ -14,7 +19,7 @@ const HORAS = Array.from({ length: 20 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${m}`;
 }).filter(h => { const [hh] = h.split(':'); return parseInt(hh) < 18; });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('cita-fecha').min = todayStr();
   const sel = document.getElementById('cita-hora');
   HORAS.forEach(h => {
@@ -22,25 +27,43 @@ document.addEventListener('DOMContentLoaded', () => {
     o.value = o.textContent = h;
     sel.appendChild(o);
   });
+  // Precarga pacientes desde Supabase (función en shared.js)
+  await getPacientesCache();
   renderCitas();
   updateStats();
 });
 
-function abrirNuevaCita() {
+async function abrirNuevaCita() {
   resetFormCita();
   document.getElementById('modal-cita-title').textContent = 'Nueva Cita';
-  cargarPacientesSelect();
+  await cargarPacientesSelect();
   openModal('modal-cita');
 }
 
-function cargarPacientesSelect(selected = '') {
+async function cargarPacientesSelect(selected = '') {
   const sel = document.getElementById('cita-paciente');
+  sel.innerHTML = '<option value="">Cargando pacientes…</option>';
+  sel.disabled  = true;
+
+  const pacientes = await getPacientesCache();
+
   sel.innerHTML = '<option value="">Seleccionar paciente…</option>';
-  DB.get('pacientes').forEach(p => {
+  sel.disabled  = false;
+
+  if (!pacientes.length) {
+    sel.innerHTML = '<option value="">No hay pacientes registrados</option>';
+    return;
+  }
+
+  pacientes.forEach(p => {
+    const codigo    = p.codigo ?? p.id;
+    const nombres   = p.nombres   ?? p.nombre   ?? '';
+    const apellidos = p.apellidos ?? p.apellido  ?? '';
+    const documento = p.documento ?? p.dni       ?? p.cedula ?? '';
     const o = document.createElement('option');
-    o.value = p.codigo;
-    o.textContent = `${p.nombres} ${p.apellidos} — ${p.documento}`;
-    if (p.codigo === selected) o.selected = true;
+    o.value       = codigo;
+    o.textContent = `${nombres} ${apellidos} — ${documento}`;
+    if (String(codigo) === String(selected)) o.selected = true;
     sel.appendChild(o);
   });
 }
@@ -64,17 +87,27 @@ function onPacienteChange() {
   const strip  = document.getElementById('pac-info-strip');
   const bloque = document.getElementById('bloque-pac-info');
   if (!codigo) { bloque.style.display = 'none'; return; }
-  const p = getPaciente(codigo);
+
+  const p = getPacienteLocal(codigo);
   if (!p) { bloque.style.display = 'none'; return; }
-  const alNoNing = p.alergias && p.alergias.length && p.alergias[0] !== 'Ninguna';
+
+  const nombres   = p.nombres   ?? p.nombre   ?? '';
+  const apellidos = p.apellidos ?? p.apellido  ?? '';
+  const edad      = p.edad      ?? '—';
+  const telefono  = p.telefono  ?? p.celular   ?? '—';
+  const tipoDoc   = p.tipoDoc   ?? p.tipo_doc  ?? 'Doc';
+  const documento = p.documento ?? p.dni       ?? p.cedula ?? '—';
+  const alergias  = Array.isArray(p.alergias) ? p.alergias : [];
+  const alNoNing  = alergias.length && alergias[0] !== 'Ninguna';
+
   strip.innerHTML = `
     <div class="patient-info-strip">
-      <div class="pi-avatar">${p.nombres[0]}${p.apellidos[0]}</div>
+      <div class="pi-avatar">${(nombres[0] ?? '?')}${(apellidos[0] ?? '?')}</div>
       <div class="pi-data">
-        <div class="pi-name">${p.nombres} ${p.apellidos}</div>
-        <div class="pi-meta">${p.edad} años · ${p.telefono} · ${p.tipoDoc}: ${p.documento}</div>
+        <div class="pi-name">${nombres} ${apellidos}</div>
+        <div class="pi-meta">${edad} años · ${telefono} · ${tipoDoc}: ${documento}</div>
       </div>
-      ${alNoNing ? `<div class="allergy-alert">⚠️ ${p.alergias.join(', ')}</div>` : ''}
+      ${alNoNing ? `<div class="allergy-alert">⚠️ ${alergias.join(', ')}</div>` : ''}
     </div>`;
   bloque.style.display = 'block';
   clearFieldError('cita-paciente');
@@ -134,17 +167,17 @@ function guardarCita() {
   if (!validarFormCita()) { showToast('Corrija los errores', 'error'); return; }
   const editCodigo = document.getElementById('cita-codigo-edit').value;
   const cita = {
-    codigo:       editCodigo || nextId('CITA', DB.get('citas')),
-    paciente:     document.getElementById('cita-paciente').value,
-    especialidad: document.getElementById('cita-especialidad').value,
-    medico:       document.getElementById('cita-medico').value,
-    fecha:        document.getElementById('cita-fecha').value,
-    hora:         document.getElementById('cita-hora').value,
-    prioridad:    document.getElementById('cita-prioridad').value,
-    motivo:       document.getElementById('cita-motivo').value.trim(),
-    justificacion:document.getElementById('cita-justificacion').value.trim(),
-    estado:       editCodigo ? DB.get('citas').find(c => c.codigo === editCodigo)?.estado || 'Programada' : 'Programada',
-    creadaEn:     new Date().toISOString(),
+    codigo:        editCodigo || nextId('CITA', DB.get('citas')),
+    paciente:      document.getElementById('cita-paciente').value,
+    especialidad:  document.getElementById('cita-especialidad').value,
+    medico:        document.getElementById('cita-medico').value,
+    fecha:         document.getElementById('cita-fecha').value,
+    hora:          document.getElementById('cita-hora').value,
+    prioridad:     document.getElementById('cita-prioridad').value,
+    motivo:        document.getElementById('cita-motivo').value.trim(),
+    justificacion: document.getElementById('cita-justificacion').value.trim(),
+    estado:        editCodigo ? DB.get('citas').find(c => c.codigo === editCodigo)?.estado || 'Programada' : 'Programada',
+    creadaEn:      new Date().toISOString(),
   };
   const citas = DB.get('citas');
   if (editCodigo) {
@@ -170,13 +203,13 @@ function renderCitas() {
   const fP   = document.getElementById('f-prioridad').value;
 
   let citas = DB.get('citas').filter(c => {
-    const pac    = getPaciente(c.paciente);
-    const nombre = pac ? `${pac.nombres} ${pac.apellidos}`.toLowerCase() : '';
+    const pac    = getPacienteLocal(c.paciente);
+    const nombre = pac ? `${pac.nombres ?? pac.nombre ?? ''} ${pac.apellidos ?? pac.apellido ?? ''}`.toLowerCase() : '';
     if (q && !nombre.includes(q) && !c.medico.toLowerCase().includes(q) && !c.codigo.toLowerCase().includes(q)) return false;
-    if (fF  && c.fecha        !== fF)  return false;
-    if (fE  && c.estado       !== fE)  return false;
+    if (fF  && c.fecha         !== fF)  return false;
+    if (fE  && c.estado        !== fE)  return false;
     if (fEsp && c.especialidad !== fEsp) return false;
-    if (fP  && c.prioridad    !== fP)  return false;
+    if (fP  && c.prioridad     !== fP)  return false;
     return true;
   });
 
@@ -189,9 +222,12 @@ function renderCitas() {
   empty.style.display = 'none';
 
   grid.innerHTML = citas.map(c => {
-    const pac      = getPaciente(c.paciente);
-    const nombre   = pac ? `${pac.nombres} ${pac.apellidos}` : '(Paciente no encontrado)';
-    const alNoNing = pac?.alergias?.length && pac.alergias[0] !== 'Ninguna';
+    const pac      = getPacienteLocal(c.paciente);
+    const nombre   = pac
+      ? `${pac.nombres ?? pac.nombre ?? ''} ${pac.apellidos ?? pac.apellido ?? ''}`.trim()
+      : '(Paciente no encontrado)';
+    const alergias = Array.isArray(pac?.alergias) ? pac.alergias : [];
+    const alNoNing = alergias.length && alergias[0] !== 'Ninguna';
     const priClass = c.prioridad === 'Urgente' ? 'urgente' : c.prioridad === 'Preferencial' ? 'preferencial' : '';
 
     let acciones = '';
@@ -204,7 +240,7 @@ function renderCitas() {
       <div class="cita-main">
         <div class="cita-header">
           <span class="cita-code">${c.codigo}</span>
-          <span class="badge badge-${c.estado.toLowerCase().replace(/ /g, '')} badge-${c.estado === 'En espera' ? 'espera' : c.estado === 'En atención' ? 'atencion' : c.estado === 'No asistió' ? 'noasistio' : c.estado.toLowerCase()}">${c.estado}</span>
+          <span class="badge badge-${c.estado.toLowerCase().replace(/ /g,'')} badge-${c.estado==='En espera'?'espera':c.estado==='En atención'?'atencion':c.estado==='No asistió'?'noasistio':c.estado.toLowerCase()}">${c.estado}</span>
           <span class="badge badge-${c.prioridad.toLowerCase()}">${c.prioridad}</span>
         </div>
         <div class="cita-paciente">${nombre}</div>
@@ -215,7 +251,7 @@ function renderCitas() {
           <span>🕐 ${c.hora}</span>
         </div>
         <div class="cita-motivo">💬 ${c.motivo}</div>
-        ${alNoNing ? `<div class="cita-allergy">⚠️ Alergias: ${pac.alergias.join(', ')}</div>` : ''}
+        ${alNoNing ? `<div class="cita-allergy">⚠️ Alergias: ${alergias.join(', ')}</div>` : ''}
         ${c.prioridad === 'Urgente' && c.justificacion ? `<div style="font-size:.7rem;color:var(--red);margin-top:.35rem">🚨 ${c.justificacion}</div>` : ''}
       </div>
       <div class="cita-actions">${acciones}</div>
@@ -257,11 +293,11 @@ function confirmarCancelacion() {
   updateStats();
 }
 
-function editarCita(codigo) {
+async function editarCita(codigo) {
   const c = DB.get('citas').find(x => x.codigo === codigo);
   if (!c) return;
   resetFormCita();
-  cargarPacientesSelect(c.paciente);
+  await cargarPacientesSelect(c.paciente);
   document.getElementById('modal-cita-title').textContent     = 'Editar Cita';
   document.getElementById('cita-codigo-edit').value           = c.codigo;
   document.getElementById('cita-codigo').value                = c.codigo;
@@ -273,9 +309,9 @@ function editarCita(codigo) {
     document.getElementById('cita-medico').value = c.medico;
     document.getElementById('cita-hora').value   = c.hora;
   }, 50);
-  document.getElementById('cita-fecha').value     = c.fecha;
-  document.getElementById('cita-prioridad').value = c.prioridad;
-  document.getElementById('cita-motivo').value    = c.motivo;
+  document.getElementById('cita-fecha').value         = c.fecha;
+  document.getElementById('cita-prioridad').value     = c.prioridad;
+  document.getElementById('cita-motivo').value        = c.motivo;
   document.getElementById('cita-justificacion').value = c.justificacion || '';
   if (c.prioridad === 'Urgente') document.getElementById('bloque-justificacion').style.display = 'block';
   openModal('modal-cita');
