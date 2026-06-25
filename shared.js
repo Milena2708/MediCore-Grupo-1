@@ -2,63 +2,58 @@
 const SUPABASE_URL = "https://bhawfcvnthzdwmkgwgxj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Tv-xN-BHuTf06AcjEkfwpA_dq4hbJ83";
 
-// Inicializar el cliente de Supabase adjuntándolo a window
+// Inicializar el cliente de Supabase adjuntándolo a window de manera segura
 if (window.supabase) {
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log("Conectado exitosamente a Supabase.");
 } else {
+    // Si falla el CDN por red, creamos un fallback temporal para evitar que la página muera por completo
     console.error("Error: No se cargó la librería CDN de Supabase en el HTML.");
+    window.supabaseClient = null;
 }
 
-// Configurar botón global de la Navbar "Agendar cita"
+// Inicializar el reloj de la barra de navegación y la redirección
 document.addEventListener('DOMContentLoaded', () => {
-  startClock();
-  setActiveNav();
+    // Función para el reloj activo en la esquina derecha de la navbar
+    function startClock() {
+        const clockElement = document.querySelector('.navbar .time') || document.getElementById('clock') || { innerText: "" };
+        setInterval(() => {
+            const ahora = new Date();
+            const hrs = String(ahora.getHours()).padStart(2, '0');
+            const mins = String(ahora.getMinutes()).padStart(2, '0');
+            const secs = String(ahora.getSeconds()).padStart(2, '0');
+            clockElement.innerText = `${hrs}:${mins}:${secs}`;
+        }, 1000);
+    }
+    startClock();
+
+    const btnNavAgendar = document.getElementById('btn-nav-agendar') || document.querySelector('.btn-agendar');
+    if (btnNavAgendar) {
+        btnNavAgendar.addEventListener('click', () => {
+            window.location.href = 'citas.html';
+        });
+    }
 });
 
-// ── Supabase pacientes cache (compartido por citas, historial, sala) ──
-const SUPABASE_URL_SH  = 'https://bhawfcvnthzdwmkgwgxj.supabase.co';
-const SUPABASE_ANON_SH = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYXdmY3ZudGh6ZHdta2d3Z3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzY4MjUsImV4cCI6MjA5NjAxMjgyNX0.gpaCKHr2HqAg7k0Zb4VolKWNEZvBrgE7Y2bJuL27PYc';
+// --- FUNCIONES CRUD REUTILIZABLES ASEGURADAS ---
+window.insertRecord = async (tableName, recordObject) => {
+    if (!window.supabaseClient) throw new Error("Supabase no está inicializado.");
+    const { data, error } = await window.supabaseClient
+        .from(tableName)
+        .insert([recordObject])
+        .select();
+    if (error) throw error;
+    return data;
+};
 
-let _pacientesCache = null;
-
-async function fetchPacientesSupabase() {
-  const res = await fetch(`${SUPABASE_URL_SH}/rest/v1/pacientes?select=*`, {
-    headers: {
-      'apikey':        SUPABASE_ANON_SH,
-      'Authorization': `Bearer ${SUPABASE_ANON_SH}`,
-      'Content-Type':  'application/json',
-    },
-  });
-  if (!res.ok) throw new Error(`Supabase error ${res.status}`);
-  const rows = await res.json();
-  return rows.map(p => ({
-    id:        p.id,
-    codigo:    String(p.id),
-    nombres:   p['Nombres']   ?? p['nombres']   ?? '',
-    apellidos: p['Apellidos'] ?? p['apellidos'] ?? '',
-    documento: String(p['N° documento'] ?? p['documento'] ?? ''),
-    telefono:  String(p['Teléfono']     ?? p['telefono']  ?? '—'),
-    edad:      calcAge(p['Fecha de nacimiento'] ?? p['fecha_nacimiento'] ?? null),
-    tipoDoc:   'DNI',
-    alergias:  [],
-  }));
-}
-
-async function getPacientesCache() {
-  if (_pacientesCache !== null) return _pacientesCache;
-  try {
-    _pacientesCache = await fetchPacientesSupabase();
-  } catch (e) {
-    console.error('Error al cargar pacientes:', e);
-    _pacientesCache = [];
-  }
-  return _pacientesCache;
-}
-
-function getPacienteLocal(codigo) {
-  if (!_pacientesCache) return null;
-  return _pacientesCache.find(
-    p => String(p.codigo ?? p.id) === String(codigo)
-  ) || null;
-}
+window.getAllRecords = async (tableName) => {
+    if (!window.supabaseClient) {
+        console.error("Supabase no disponible.");
+        return [];
+    }
+    const { data, error } = await window.supabaseClient
+        .from(tableName)
+        .select('*');
+    if (error) throw error;
+    return data;
+};
