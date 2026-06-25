@@ -1,13 +1,16 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediCore - Registro de Pacientes</title>
+    
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="pacientes.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="shared.js"></script>
 </head>
 <body>
@@ -26,8 +29,9 @@
                     <li><a href="reportes.html">Reportes</a></li>
                 </ul>
             </nav>
-            <div class="nav-actions">
-                <button id="btn-nav-agendar" class="btn-agendar">Agendar cita</button>
+            <div class="nav-right" style="display: flex; align-items: center; gap: 1rem; color: white;">
+                <span class="nav-clock" id="nav-clock">00:00:00</span>
+                <button onclick="cerrarSesion()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
             </div>
         </div>
     </header>
