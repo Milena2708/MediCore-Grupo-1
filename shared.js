@@ -1,64 +1,49 @@
-// shared.js - Conexión oficial y funciones globales de Supabase
+// shared.js - Configuración Única y Centralizada para el Examen Final
 const SUPABASE_URL = "https://bhawfcvnthzdwmkgwgxj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Tv-xN-BHuTf06AcjEkfwpA_dq4hbJ83";
 
-// Inicializar el cliente de Supabase adjuntándolo a window
+// Inicializar el cliente global en el objeto window
 if (window.supabase) {
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log("Conectado exitosamente a Supabase.");
+    console.log("Conexión centralizada con Supabase establecida.");
 } else {
-    console.error("Error: No se cargó la librería CDN de Supabase en el HTML.");
+    console.error("Error crítico: No se encontró el CDN de Supabase en el HTML.");
 }
 
-// Configurar botón global de la Navbar "Agendar cita"
+// Lógica para todas las páginas internas de la clínica
 document.addEventListener('DOMContentLoaded', () => {
-  startClock();
-  setActiveNav();
+    // 1. Reloj activo de la barra de navegación (Formato 00:00:00)
+    const clockElement = document.getElementById('nav-clock');
+    if (clockElement) {
+        setInterval(() => {
+            const ahora = new Date();
+            const hrs = String(ahora.getHours()).padStart(2, '0');
+            const mins = String(ahora.getMinutes()).padStart(2, '0');
+            const secs = String(ahora.getSeconds()).padStart(2, '0');
+            clockElement.innerText = `${hrs}:${mins}:${secs}`;
+        }, 1000);
+    }
+
+    // 2. Control obligatorio de accesos por Roles y Sesión
+    const rutaActual = window.location.pathname;
+    if (!rutaActual.includes('login.html')) {
+        const sesionRol = sessionStorage.getItem('user_rol');
+        // Si no hay sesión iniciada, rebota automáticamente al login
+        if (!sesionRol) {
+            alert("Acceso denegado. Debe iniciar sesión en el sistema.");
+            window.location.href = "login.html";
+        }
+    }
 });
 
-// ── Supabase pacientes cache (compartido por citas, historial, sala) ──
-const SUPABASE_URL_SH  = 'https://bhawfcvnthzdwmkgwgxj.supabase.co';
-const SUPABASE_ANON_SH = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYXdmY3ZudGh6ZHdta2d3Z3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzY4MjUsImV4cCI6MjA5NjAxMjgyNX0.gpaCKHr2HqAg7k0Zb4VolKWNEZvBrgE7Y2bJuL27PYc';
-
-let _pacientesCache = null;
-
-async function fetchPacientesSupabase() {
-  const res = await fetch(`${SUPABASE_URL_SH}/rest/v1/pacientes?select=*`, {
-    headers: {
-      'apikey':        SUPABASE_ANON_SH,
-      'Authorization': `Bearer ${SUPABASE_ANON_SH}`,
-      'Content-Type':  'application/json',
-    },
-  });
-  if (!res.ok) throw new Error(`Supabase error ${res.status}`);
-  const rows = await res.json();
-  return rows.map(p => ({
-    id:        p.id,
-    codigo:    String(p.id),
-    nombres:   p['Nombres']   ?? p['nombres']   ?? '',
-    apellidos: p['Apellidos'] ?? p['apellidos'] ?? '',
-    documento: String(p['N° documento'] ?? p['documento'] ?? ''),
-    telefono:  String(p['Teléfono']     ?? p['telefono']  ?? '—'),
-    edad:      calcAge(p['Fecha de nacimiento'] ?? p['fecha_nacimiento'] ?? null),
-    tipoDoc:   'DNI',
-    alergias:  [],
-  }));
-}
-
-async function getPacientesCache() {
-  if (_pacientesCache !== null) return _pacientesCache;
-  try {
-    _pacientesCache = await fetchPacientesSupabase();
-  } catch (e) {
-    console.error('Error al cargar pacientes:', e);
-    _pacientesCache = [];
-  }
-  return _pacientesCache;
-}
-
-function getPacienteLocal(codigo) {
-  if (!_pacientesCache) return null;
-  return _pacientesCache.find(
-    p => String(p.codigo ?? p.id) === String(codigo)
-  ) || null;
-}
+// --- FUNCIÓN GLOBAL DE CIERRE DE SESIÓN ---
+window.cerrarSesion = async () => {
+    try {
+        const { error } = await window.supabaseClient.auth.signOut();
+        if (error) throw error;
+        sessionStorage.clear();
+        window.location.href = "login.html";
+    } catch (err) {
+        alert(`Error al cerrar sesión: ${err.message}`);
+    }
+};
