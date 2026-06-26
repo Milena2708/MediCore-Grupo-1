@@ -1,133 +1,98 @@
-// pacientes.js - Módulo de Pacientes consumiendo shared.js
-document.addEventListener('DOMContentLoaded', () => {
-    const formPaciente = document.getElementById('form-paciente');
-    const txtBuscar = document.getElementById('txt-buscar-paciente');
-    const supabase = window.supabaseClient;
+// =============================================
+// MÓDULO DE PACIENTES — CRUD
+// =============================================
 
-    if (formPaciente) {
-        formPaciente.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const dniVal = document.getElementById('dni').value.trim();
+async function crearPaciente(datos) {
+    const { data, error } = await supabase
+        .from('pacientes')
+        .insert([{
+            codigo: datos.codigo,
+            nombres: datos.nombres,
+            apellidos: datos.apellidos,
+            tipo_documento: datos.tipo_documento,
+            documento: datos.documento,
+            fecha_nacimiento: datos.fecha_nacimiento,
+            telefono: datos.telefono,
+            correo: datos.correo || null,
+            direccion: datos.direccion || null,
+            alergias: datos.alergias,
+            alergia_detalle: datos.alergia_detalle || null,
+            contacto_emergencia_nombre: datos.contacto_nombre,
+            contacto_emergencia_parentesco: datos.contacto_parentesco,
+            contacto_emergencia_telefono: datos.contacto_telefono,
+            creado_por: (await supabase.auth.getUser()).data.user?.id
+        }])
+        .select()
+        .single();
 
-            if (dniVal.length !== 8) {
-                alert("El DNI debe contener exactamente 8 dígitos numéricos.");
-                return;
-            }
-
-            const nuevoPaciente = {
-                codigo: `PAC-${Date.now().toString().slice(-4)}`,
-                nombres: document.getElementById('nombre').value.trim(),
-                apellidos: "Registrado",
-                tipo_documento: "DNI",
-                documento: dniVal,
-                fecha_nacimiento: document.getElementById('fechaNac').value,
-                telefono: document.getElementById('telefono').value.trim(),
-                correo: document.getElementById('correo').value.trim(),
-                direccion: "Dirección Central",
-                alergias: "Ninguna",
-                contacto_emergencia_nombre: "Contacto Familiar",
-                contacto_emergencia_parentesco: "Pariente",
-                contacto_emergencia_telefono: "999999999"
-            };
-
-            try {
-                const { error } = await supabase.from('pacientes').insert([nuevoPaciente]);
-                if (error) throw error;
-
-                alert("Paciente guardado con éxito en Supabase.");
-                formPaciente.reset();
-                document.getElementById('modal-paciente').style.display = 'none';
-                renderizarPacientes();
-            } catch (err) {
-                alert(`Error al guardar: ${err.message || "El DNI ya se encuentra registrado."}`);
-            }
-        });
+    if (error) {
+        if (error.code === '23505') throw new Error('El código o documento ya existe.');
+        throw new Error(error.message);
     }
+    return data;
+}
 
-    if (txtBuscar) {
-        txtBuscar.addEventListener('input', () => {
-            renderizarPacientes(txtBuscar.value.trim().toLowerCase());
-        });
+async function obtenerPacientes(busqueda = '') {
+    let query = supabase.from('pacientes').select('*').order('fecha_creacion', { ascending: false });
+    if (busqueda) {
+        query = query.or(`nombres.ilike.%${busqueda}%,apellidos.ilike.%${busqueda}%,documento.ilike.%${busqueda}%`);
     }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
+}
 
-    renderizarPacientes();
-});
+async function actualizarPaciente(id, datos) {
+    const { data, error } = await supabase
+        .from('pacientes')
+        .update({
+            nombres: datos.nombres,
+            apellidos: datos.apellidos,
+            telefono: datos.telefono,
+            correo: datos.correo || null,
+            direccion: datos.direccion || null,
+            alergias: datos.alergias,
+            alergia_detalle: datos.alergia_detalle || null,
+            contacto_emergencia_nombre: datos.contacto_nombre,
+            contacto_emergencia_parentesco: datos.contacto_parentesco,
+            contacto_emergencia_telefono: datos.contacto_telefono
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-async function renderizarPacientes(busqueda = "") {
-    const cuerpo = document.querySelector('#tabla-pacientes tbody');
-    const listaRecientes = document.getElementById('lista-recientes');
-    const supabase = window.supabaseClient;
-    if (!cuerpo) return;
+    if (error) throw new Error(error.message);
+    return data;
+}
 
+async function generarCodigoPaciente() {
+    const { count } = await supabase.from('pacientes').select('*', { count: 'exact', head: true });
+    return `PAC${String((count || 0) + 1).padStart(3, '0')}`;
+}
+
+async function cargarTablaPacientes(busqueda = '') {
+    const tbody = document.getElementById('tablaPacientes');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
     try {
-        const { data: pacientes, error } = await supabase.from('pacientes').select('*');
-        if (error) throw error;
-
-        let total = pacientes.length;
-        let adultos = 0;
-        let menores = 0;
-
-        const pacientesProcesados = pacientes.map(p => {
-            const hoy = new Date();
-            const cumple = new Date(p.fecha_nacimiento);
-            let edad = hoy.getFullYear() - cumple.getFullYear();
-            if (hoy.getMonth() < cumple.getMonth() || (hoy.getMonth() === cumple.getMonth() && hoy.getDate() < cumple.getDate())) {
-                edad--;
-            }
-            if (edad >= 18) adultos++; else menores++;
-            return { ...p, edad };
-        });
-
-        // Cargar las métricas de las tarjetas dinámicas
-        if (document.getElementById('lbl-total-pacientes')) document.getElementById('lbl-total-pacientes').innerText = total;
-        if (document.getElementById('lbl-adultos')) document.getElementById('lbl-adultos').innerText = adultos;
-        if (document.getElementById('lbl-menores')) document.getElementById('lbl-menores').innerText = menores;
-
-        const filtrados = pacientesProcesados.filter(p =>
-            p.nombres.toLowerCase().includes(busqueda) || p.documento.includes(busqueda)
-        );
-
-        if (filtrados.length === 0) {
-            cuerpo.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:15px;">No se encontraron registros en el sistema.</td></tr>';
+        const pacientes = await obtenerPacientes(busqueda);
+        if (pacientes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">No se encontraron pacientes</td></tr>';
             return;
         }
-
-        cuerpo.innerHTML = filtrados.map(p => `
+        tbody.innerHTML = pacientes.map(p => `
             <tr>
-                <td><strong>${p.codigo}</strong></td>
+                <td>${p.codigo}</td>
                 <td>${p.nombres} ${p.apellidos}</td>
-                <td>${p.documento}</td>
-                <td>${p.edad} años</td>
+                <td>${p.tipo_documento}: ${p.documento}</td>
                 <td>${p.telefono}</td>
+                <td>${p.alergias?.length ? `<span class="badge">${p.alergias.join(', ')}</span>` : 'Ninguna'}</td>
                 <td>
-                    <button onclick="eliminarPaciente('${p.id}')" style="color:#ef4444; border:none; background:none; cursor:pointer;">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button onclick="editarPaciente('${p.id}')">Editar</button>
                 </td>
             </tr>
         `).join('');
-
-        if (listaRecientes) {
-            const recientes = [...pacientesProcesados].reverse().slice(0, 3);
-            listaRecientes.innerHTML = recientes.map(r => `
-                <div class="recent-item" style="padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
-                    <p style="margin:0; font-weight:600; color:#0f4c81;">${r.nombres}</p>
-                    <small style="color:#64748b;">DNI: ${r.documento}</small>
-                </div>
-            `).join('');
-        }
-    } catch (err) {
-        console.error(err);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color:red">${e.message}</td></tr>`;
     }
 }
-
-window.eliminarPaciente = async (id) => {
-    if (!confirm("¿Desea eliminar permanentemente a este paciente?")) return;
-    try {
-        const { error } = await window.supabaseClient.from('pacientes').delete().eq('id', id);
-        if (error) throw error;
-        renderizarPacientes();
-    } catch (err) {
-        alert("Error al eliminar.");
-    }
-};

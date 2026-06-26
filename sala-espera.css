@@ -1,55 +1,96 @@
-.sala-grid { display:grid; grid-template-columns:1fr 320px; gap:1.5rem; align-items:start; }
-@media(max-width:1100px){ .sala-grid{grid-template-columns:1fr;} }
+/* =============================================
+   MÓDULO SALA DE ESPERA
+   ============================================= */
 
-.turno-card {
-  background:white; border:1.5px solid var(--gray-200); border-radius:var(--radius-lg);
-  padding:1.1rem 1.25rem; display:flex; align-items:stretch; gap:1rem;
-  transition:all var(--tr); box-shadow:var(--shadow-sm); margin-bottom:.75rem;
-  position:relative;
+.container-sala {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
-.turno-card:hover { box-shadow:var(--shadow); }
-.turno-card.urgente     { border-left:5px solid var(--red); }
-.turno-card.preferencial{ border-left:5px solid var(--orange); }
-.turno-card.normal      { border-left:5px solid var(--blue-light); }
-.turno-card.en-atencion { background:linear-gradient(135deg,#F0FDF4,white); border-color:var(--green); }
-.turno-card.atendido    { opacity:.55; }
 
-.turno-num {
-  width:48px; height:48px; border-radius:var(--radius); flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:1.2rem; font-weight:800; color:white;
-  background:linear-gradient(135deg,var(--blue),var(--blue-light));
-  align-self:flex-start;
+.grid-espera {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
 }
-.turno-num.urgente      { background:linear-gradient(135deg,var(--red),#F87171); }
-.turno-num.preferencial { background:linear-gradient(135deg,var(--orange),#FCD34D); }
 
-.turno-body { flex:1; min-width:0; }
-.turno-header { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.4rem; }
-.turno-nombre { font-size:.95rem; font-weight:700; color:var(--gray-900); }
-.turno-meta { display:flex; gap:.75rem; flex-wrap:wrap; font-size:.73rem; color:var(--gray-500); margin-bottom:.5rem; }
-.turno-meta span { display:flex; align-items:center; gap:.25rem; }
-.turno-motivo { font-size:.75rem; color:var(--gray-600); background:var(--gray-50); border-radius:var(--radius-sm); padding:.35rem .6rem; border-left:2px solid var(--blue-pale2); }
-.turno-allergy { background:var(--red-pale); color:#991B1B; border-radius:var(--radius-sm); padding:.25rem .55rem; font-size:.67rem; font-weight:600; display:inline-flex; align-items:center; gap:.3rem; margin-top:.4rem; }
-.turno-justif { font-size:.7rem; color:var(--red); margin-top:.3rem; }
-.turno-tiempos { display:flex; gap:.75rem; margin-top:.5rem; flex-wrap:wrap; }
-.turno-tiempo-chip { font-size:.67rem; background:var(--blue-pale); color:var(--blue); border-radius:var(--radius-full); padding:.18rem .55rem; font-weight:600; }
-.turno-tiempo-chip.llegada { background:var(--green-pale); color:#065F46; }
-.turno-tiempo-chip.atencion { background:var(--orange-pale); color:#92400E; }
-
-.turno-acciones { display:flex; flex-direction:column; gap:.4rem; justify-content:center; flex-shrink:0; }
-
-/* Sidebar panel */
-.resumen-item { display:flex; justify-content:space-between; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--gray-100); font-size:.8rem; }
-.resumen-item:last-child { border:none; }
-.resumen-label { color:var(--gray-500); font-weight:500; }
-.resumen-val   { font-weight:700; color:var(--gray-900); }
-
-/* Ticker */
-.ticker {
-  background:linear-gradient(135deg,var(--navy),var(--blue));
-  border-radius:var(--radius-lg); padding:1.1rem 1.5rem; color:white;
-  display:flex; align-items:center; gap:1rem; margin-bottom:1rem;
+.tarjeta-espera {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-sizing: border-box;
 }
-.ticker-num { font-size:2.5rem; font-weight:800; line-height:1; }
-.ticker-label { font-size:.7rem; opacity:.7; text-transform:uppercase; letter-spacing:.08em; }
+
+.estado-en_espera {
+    border-top: 6px solid #FF9800;
+}
+
+.estado-en_atencion {
+    border-top: 6px solid var(--success);
+    background-color: #F1F8E9;
+}
+
+.tarjeta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.badge-prioridad {
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--white);
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.tarjeta-espera h3 {
+    margin: 0 0 10px 0;
+    color: #111;
+    font-size: 18px;
+}
+
+.tarjeta-espera p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #444;
+}
+
+.tarjeta-acciones {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-atencion {
+    background: var(--success);
+    color: var(--white);
+    border: none;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex: 1;
+    font-weight: 600;
+}
+
+.btn-atencion:hover {
+    background: #1B5E20;
+}
+
+.btn-finalizar {
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex: 1;
+    font-weight: 600;
+}
+
+.btn-finalizar:hover {
+    background: var(--primary-dark);
+}

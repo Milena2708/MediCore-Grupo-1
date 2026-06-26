@@ -1,145 +1,182 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8"> 
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore - Registro de Pacientes</title>
-    
-    <link rel="stylesheet" href="shared.css">
+    <title>MediCore — Módulo Pacientes</title>
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="pacientes.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script src="shared.js"></script>
 </head>
 <body>
-    <header class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span>MediCore <strong>SISTEMA CLÍNICO</strong></span>
-            </div>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="index.html">Inicio</a></li>
-                    <li><a href="pacientes.html" class="active">Pacientes</a></li>
-                    <li><a href="citas.html">Citas</a></li>
-                    <li><a href="sala-espera.html">Sala de Espera</a></li>
-                    <li><a href="historial.html">Historial</a></li>
-                    <li><a href="reportes.html">Reportes</a></li>
-                </ul>
-            </nav>
-            <div class="nav-right" style="display: flex; align-items: center; gap: 1rem; color: white;">
-                <span class="nav-clock" id="nav-clock">00:00:00</span>
-                <button onclick="cerrarSesion()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
-            </div>
-        </div>
-    </header>
 
-    <main class="main-container">
-        <section class="module-banner">
-            <div class="banner-text">
-                <span>MÓDULO 01</span>
-                <h2>Registro de Pacientes</h2>
-                <p>Gestiona el alta, edición y búsqueda de pacientes registrados en el sistema.</p>
-            </div>
-            <button class="btn-primary" onclick="document.getElementById('modal-paciente').style.display='flex'"><i class="fas fa-plus"></i> Nuevo Paciente</button>
-        </section>
+<div class="navbar">
+    <h2>🏥 MediCore</h2>
+    <div class="nav-links">
+        <a href="index.html">Dashboard</a>
+        <a href="pacientes.html" data-modulo="pacientes">Pacientes</a>
+        <a href="citas.html" data-modulo="citas">Citas</a>
+        <a href="sala-espera.html" data-modulo="sala-espera">Sala de Espera</a>
+        <a href="historial.html" data-modulo="historial">Historial</a>
+        <a href="reportes.html" data-modulo="reportes">Reportes</a>
+    </div>
+    <div class="nav-usuario">
+        <span id="nombreUsuario">Cargando...</span>
+        <button onclick="cerrarSesion()" class="btn-logout-header">Salir</button>
+    </div>
+</div>
 
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-users"></i></div>
-                <div class="metric-data"><h3 id="lbl-total-pacientes">0</h3><p>TOTAL PACIENTES</p></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-user-tie"></i></div>
-                <div class="metric-data"><h3 id="lbl-adultos">0</h3><p>ADULTOS</p></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-child"></i></div>
-                <div class="metric-data"><h3 id="lbl-menores">0</h3><p>MENORES DE EDAD</p></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fas fa-allergies"></i></div>
-                <div class="metric-data"><h3 id="lbl-alergias">0</h3><p>CON ALERGIAS</p></div>
-            </div>
-        </div>
-
-        <div class="content-split">
-            <section class="table-section">
-                <div class="table-header">
-                    <h3>Lista de Pacientes</h3>
-                    <div class="table-filters">
-                        <input type="text" id="txt-buscar-paciente" placeholder="Buscar por nombre, apellido o DNI...">
-                    </div>
+<div class="container-pacientes">
+    <div class="form-section">
+        <h3>Formulario de Admisión</h3>
+        <form id="formPaciente" onsubmit="guardarFormulario(event)">
+            <input type="hidden" id="idEdicion">
+            <div class="form-grid">
+                <div>
+                    <label>Código Paciente</label>
+                    <input type="text" id="codigoPaciente" readonly class="input-readonly">
                 </div>
-                <div class="table-container">
-                    <table id="tabla-pacientes">
-                        <thead>
-                            <tr>
-                                <th>CÓDIGO</th>
-                                <th>PACIENTE</th>
-                                <th>DOCUMENTO</th>
-                                <th>EDAD</th>
-                                <th>TELÉFONO</th>
-                                <th>ACCIONES</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            </tbody>
-                    </table>
+                <div>
+                    <label>Nombres *</label>
+                    <input type="text" id="nombres" required>
                 </div>
-            </section>
-
-            <aside class="recent-aside">
-                <h3>Pacientes Recientes</h3>
-                <div id="lista-recientes">
-                    </div>
-            </aside>
-        </div>
-    </main>
-
-    <div id="modal-paciente" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3>Registrar Nuevo Paciente</h3>
-            <form id="form-paciente">
-                <div class="form-grid">
-                    <div class="input-group">
-                        <label>Nombre Completo</label>
-                        <input type="text" id="nombre" required placeholder="Ej. Juan Pérez">
-                    </div>
-                    <div class="input-group">
-                        <label>DNI (Documento de Identidad)</label>
-                        <input type="number" id="dni" required placeholder="8 dígitos">
-                    </div>
-                    <div class="input-group">
-                        <label>Fecha de Nacimiento</label>
-                        <input type="date" id="fechaNac" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Género</label>
-                        <select id="genero" required>
-                            <option value="Masculino">Masculino</option>
-                            <option value="Femenino">Femenino</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Teléfono Celular</label>
-                        <input type="tel" id="telefono" required placeholder="9 dígitos">
-                    </div>
-                    <div class="input-group">
-                        <label>Correo Electrónico</label>
-                        <input type="email" id="correo" placeholder="ejemplo@correo.com">
-                    </div>
+                <div>
+                    <label>Apellidos *</label>
+                    <input type="text" id="apellidos" required>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Guardar Paciente</button>
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('modal-paciente').style.display='none'">Cancelar</button>
+                <div>
+                    <label>Tipo Documento</label>
+                    <select id="tipoDocumento">
+                        <option value="DNI">DNI</option>
+                        <option value="Pasaporte">Pasaporte</option>
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div>
+                    <label>Nro. Documento *</label>
+                    <input type="text" id="documento" required>
+                </div>
+                <div>
+                    <label>Fecha Nacimiento *</label>
+                    <input type="date" id="fechaNacimiento" required>
+                </div>
+                <div>
+                    <label>Teléfono *</label>
+                    <input type="text" id="telefono" required>
+                </div>
+                <div>
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="correo">
+                </div>
+                <div class="form-group-full">
+                    <label>Dirección de Residencia</label>
+                    <input type="text" id="direccion">
+                </div>
+                <div>
+                    <label>Contacto de Emergencia</label>
+                    <input type="text" id="contactoNombre" placeholder="Nombre completo" required>
+                </div>
+                <div>
+                    <label>Parentesco</label>
+                    <select id="contactoParentesco">
+                        <option value="Familiar">Familiar</option>
+                        <option value="Cónyuge">Cónyuge</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Teléfono Emergencia</label>
+                    <input type="text" id="contactoTelefono" required>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-add" id="btnGuardarPaciente">Guardar Paciente</button>
+            </div>
+        </form>
     </div>
 
-    <script src="pacientes.js"></script>
+    <div class="action-bar">
+        <input type="text" class="search-box" id="txtBuscar" placeholder="Buscar por Nombre, Apellido o DNI..." oninput="cargarTablaPacientes(this.value)">
+    </div>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Paciente</th>
+                <th>Documento</th>
+                <th>Teléfono</th>
+                <th>Alergias</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tablaPacientes">
+            </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script src="pacientes.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(async () => {
+            await cargarTablaPacientes();
+            document.getElementById('codigoPaciente').value = await generarCodigoPaciente();
+        }, 800);
+    });
+
+    async function guardarFormulario(e) {
+        e.preventDefault();
+        const datos = {
+            codigo: document.getElementById('codigoPaciente').value,
+            nombres: document.getElementById('nombres').value,
+            apellidos: document.getElementById('apellidos').value,
+            tipo_documento: document.getElementById('tipoDocumento').value,
+            documento: document.getElementById('documento').value,
+            fecha_nacimiento: document.getElementById('fechaNacimiento').value,
+            telefono: document.getElementById('telefono').value,
+            correo: document.getElementById('correo').value,
+            direccion: document.getElementById('direccion').value,
+            alergias: [],
+            contacto_nombre: document.getElementById('contactoNombre').value,
+            contacto_parentesco: document.getElementById('contactoParentesco').value,
+            contacto_telefono: document.getElementById('contactoTelefono').value
+        };
+
+        try {
+            const idEdicion = document.getElementById('idEdicion').value;
+            if (idEdicion) {
+                await actualizarPaciente(idEdicion, datos);
+            } else {
+                await crearPaciente(datos);
+            }
+            document.getElementById('formPaciente').reset();
+            document.getElementById('idEdicion').value = '';
+            await cargarTablaPacientes();
+            document.getElementById('codigoPaciente').value = await generarCodigoPaciente();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    async function editarPaciente(id) {
+        const p = await supabase.from('pacientes').select('*').eq('id', id).single();
+        if(p.data) {
+            document.getElementById('idEdicion').value = p.data.id;
+            document.getElementById('codigoPaciente').value = p.data.codigo;
+            document.getElementById('nombres').value = p.data.nombres;
+            document.getElementById('apellidos').value = p.data.apellidos;
+            document.getElementById('tipoDocumento').value = p.data.tipo_documento;
+            document.getElementById('documento').value = p.data.documento;
+            document.getElementById('fechaNacimiento').value = p.data.fecha_nacimiento;
+            document.getElementById('telefono').value = p.data.telefono;
+            document.getElementById('correo').value = p.data.correo;
+            document.getElementById('direccion').value = p.data.direccion;
+            document.getElementById('contactoNombre').value = p.data.contacto_emergencia_nombre;
+            document.getElementById('contactoParentesco').value = p.data.contacto_emergencia_parentesco;
+            document.getElementById('contactoTelefono').value = p.data.contacto_emergencia_telefono;
+        }
+    }
+</script>
 </body>
 </html>

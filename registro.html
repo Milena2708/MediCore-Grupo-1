@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore — Registro</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="body-registro">
+
+<div class="register-container">
+    <h2>Crear Cuenta Personal</h2>
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <div class="form-group">
+        <label for="nombre">Nombre Completo</label>
+        <input type="text" id="nombre" placeholder="Ej. Carlos Mendoza">
+    </div>
+    <div class="form-group">
+        <label for="correo">Correo Electrónico</label>
+        <input type="email" id="correo" placeholder="ejemplo@medicore.pe">
+    </div>
+    <div class="form-group">
+        <label for="password">Contraseña (Mín. 6 caracteres)</label>
+        <input type="password" id="password" placeholder="••••••••">
+    </div>
+    <div class="form-group">
+        <label for="rol">Rol Asignado</label>
+        <select id="rol">
+            <option value="">Selecciona un rol</option>
+            <option value="administrador">Administrador</option>
+            <option value="recepcion">Recepción</option>
+            <option value="medico">Médico</option>
+            <option value="enfermeria">Enfermería</option>
+        </select>
+    </div>
+
+    <button class="btn-register" id="btnRegister" onclick="ejecutarRegistro()">Registrar Usuario</button>
+
+    <div class="login-link">
+        ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+    async function ejecutarRegistro() {
+        const nombre = document.getElementById('nombre').value.trim();
+        const correo = document.getElementById('correo').value.trim();
+        const password = document.getElementById('password').value;
+        const rol = document.getElementById('rol').value;
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const btn = document.getElementById('btnRegister');
+
+        errorMsg.style.display = 'none';
+        successMsg.style.display = 'none';
+
+        if (!nombre || !correo || !password || !rol) {
+            errorMsg.textContent = 'Todos los campos son obligatorios.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Registrando...';
+
+        const { data, error } = await supabase.auth.signUp({ email: correo, password: password });
+
+        if (error) {
+            errorMsg.textContent = error.message;
+            errorMsg.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Registrar Usuario';
+            return;
+        }
+
+        const { error: perfilError } = await supabase
+            .from('usuarios_perfil')
+            .insert([{ user_id: data.user.id, nombre, correo, rol }]);
+
+        if (perfilError) {
+            errorMsg.textContent = perfilError.message;
+            errorMsg.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Registrar Usuario';
+            return;
+        }
+
+        successMsg.textContent = 'Registro correcto. Redirigiendo al panel...';
+        successMsg.style.display = 'block';
+        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+    }
+</script>
+</body>
+</html>

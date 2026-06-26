@@ -3,162 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore — Autenticación</title>
-    <link rel="stylesheet" href="shared.css">
-    <style>
-        body {
-            background: #f1f5f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            font-family: sans-serif;
-            margin: 0;
-        }
-        .auth-container {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            width: 100%;
-            max-width: 400px;
-        }
-        .auth-header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-        .auth-header h2 {
-            color: #0f4c81;
-            margin: 0 0 5px 0;
-        }
-        .auth-header p {
-            color: #64748b;
-            margin: 0;
-            font-size: 14px;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 16px;
-        }
-        .form-group label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #475569;
-        }
-        .form-control {
-            padding: 10px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-        }
-        .form-control:focus {
-            border-color: #0f4c81;
-        }
-        .btn-auth {
-            width: 100%;
-            background: #0f4c81;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        .btn-auth:hover {
-            background: #1d70b8;
-        }
-        .auth-toggle {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 13px;
-            color: #64748b;
-        }
-        .auth-toggle span {
-            color: #0f4c81;
-            cursor: pointer;
-            font-weight: 600;
-        }
-    </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="shared.js"></script>
+    <title>MediCore — Iniciar Sesión</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="body-login">
 
-    <div class="auth-container">
-        <div id="section-login">
-            <div class="auth-header">
-                <h2>Iniciar Sesión</h2>
-                <p>Ingrese al sistema clínico de MediCore</p>
-            </div>
-            <form id="form-login">
-                <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="login-correo" class="form-control" required placeholder="ejemplo@clinic.com">
-                </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="login-password" class="form-control" required placeholder="••••••••">
-                </div>
-                <button type="submit" class="btn-auth">Ingresar al Sistema</button>
-            </form>
-            <div class="auth-toggle">
-                ¿No tienes una cuenta? <span onclick="toggleAuth(true)">Regístrate aquí</span>
-            </div>
-        </div>
-
-        <div id="section-registro" style="display: none;">
-            <div class="auth-header">
-                <h2>Crear Cuenta</h2>
-                <p>Registre un nuevo usuario con rol de examen</p>
-            </div>
-            <form id="form-registro">
-                <div class="form-group">
-                    <label>Nombre Completo</label>
-                    <input type="text" id="reg-nombre" class="form-control" required placeholder="Ej. Milena Yalli">
-                </div>
-                <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="reg-correo" class="form-control" required placeholder="correo@clinic.com">
-                </div>
-                <div class="form-group">
-                    <label>Rol del Sistema <span style="color:red">*</span></label>
-                    <select id="reg-rol" class="form-control" required>
-                        <option value="">Seleccione un rol…</option>
-                        <option value="Administrador">Administrador</option>
-                        <option value="Recepción">Recepción</option>
-                        <option value="Médico">Médico</option>
-                        <option value="Enfermería">Enfermería</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Contraseña (Mín. 6 caracteres)</label>
-                    <input type="password" id="reg-password" class="form-control" required placeholder="••••••••">
-                </div>
-                <div class="form-group">
-                    <label>Confirmar Contraseña</label>
-                    <input type="password" id="reg-confirm" class="form-control" required placeholder="••••••••">
-                </div>
-                <button type="submit" class="btn-auth">Registrar Usuario</button>
-            </form>
-            <div class="auth-toggle">
-                ¿Ya tienes cuenta? <span onclick="toggleAuth(false)">Inicia sesión</span>
-            </div>
-        </div>
+<div class="login-container">
+    <div class="login-header">
+        <h1>🏥 MediCore</h1>
+        <p>Gestión Hospitalaria</p>
     </div>
 
-    <script>
-        // Función simple para intercambiar vistas entre login y registro
-        function toggleAuth(showRegister) {
-            document.getElementById('section-login').style.display = showRegister ? 'none' : 'block';
-            document.getElementById('section-registro').style.display = showRegister ? 'block' : 'none';
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="form-group">
+        <label for="correo">Correo Institucional</label>
+        <input type="email" id="correo" placeholder="usuario@medicore.pe">
+    </div>
+
+    <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" placeholder="••••••••">
+    </div>
+
+    <button class="btn-login" id="btnLogin" onclick="ejecutarLogin()">Iniciar Sesión</button>
+
+    <div class="register-link">
+        ¿No tienes una cuenta? <a href="registro.html">Regístrate aquí</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script>
+    async function verificarSesionActiva() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) window.location.href = 'index.html';
+    }
+    verificarSesionActiva();
+
+    async function ejecutarLogin() {
+        const correo = document.getElementById('correo').value.trim();
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('errorMsg');
+        const btn = document.getElementById('btnLogin');
+
+        errorMsg.style.display = 'none';
+
+        if (!correo || !password) {
+            errorMsg.textContent = 'Por favor, completa todos los campos.';
+            errorMsg.style.display = 'block';
+            return;
         }
-    </script>
-    <script src="login.js"></script>
+
+        btn.disabled = true;
+        btn.textContent = 'Autenticando...';
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: correo,
+            password: password
+        });
+
+        if (error) {
+            errorMsg.textContent = 'Credenciales inválidas. Inténtalo de nuevo.';
+            errorMsg.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Iniciar Sesión';
+            return;
+        }
+
+        window.location.href = 'index.html';
+    }
+</script>
 </body>
 </html>
